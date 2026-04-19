@@ -1,0 +1,124 @@
+import { Request, Response } from 'express';
+import { PrismaClient } from '@prisma/client';
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
+
+const prisma = new PrismaClient();
+
+const saveBase64Image = (base64String: string) => {
+  if (!base64String) return null;
+  try {
+    const filename = `doc-${crypto.randomUUID()}.jpg`;
+    const filepath = path.join(__dirname, '../../uploads', filename);
+    const base64Data = base64String.replace(/^data:image\/\w+;base64,/, "");
+    fs.writeFileSync(filepath, base64Data, 'base64');
+    return `/uploads/${filename}`;
+  } catch (err) {
+    console.error("Error saving document image", err);
+    return null;
+  }
+}
+
+export const uploadDocument = async (req: Request, res: Response) => {
+  try {
+    const { vehicleId } = req.params;
+    const { type, title, image_base64, expiryDate } = req.body;
+
+    if (!image_base64 || !type || !title) {
+       return res.status(400).json({ success: false, error: 'Missing document payload' });
+    }
+
+    const fileUrl = saveBase64Image(image_base64);
+    if (!fileUrl) {
+       return res.status(500).json({ success: false, error: 'Failed to save document file' });
+    }
+
+    // Check if we should delete existing one of the same type? 
+    // Usually for RC/Insurance, we replace.
+    const existing = await prisma.document.findFirst({
+        where: { vehicleId, type }
+    });
+    if (existing) {
+        // Soft delete or actual delete of the old file
+        try {
+            const oldPath = path.join(__dirname, '../..', existing.fileUrl);
+            if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+        } catch(e) {}
+        
+        await prisma.document.delete({ where: { id: existing.id } });
+    }
+
+    const document = await prisma.document.create({
+      data: {
+        vehicleId,
+        type,
+        title,
+        fileUrl,
+        expiryDate: expiryDate ? new Date(expiryDate) : null,
+        status: 'ACTIVE'
+      }
+    });
+
+    res.json({ success: true, data: document });
+  } catch (error: any) {
+    console.error(error);
+    res.status(500).json({ success: false, error: 'Failed to upload document' });
+  }
+};
+
+export const getDocuments = async (req: Request, res: Response) => {
+  try {
+    const { vehicleId } = req.params;
+    const documents = await prisma.document.findMany({
+      where: { vehicleId },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json({ success: true, data: documents });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: 'Failed to fetch documents' });
+  }
+};
+
+export const deleteDocument = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const doc = await prisma.document.findUnique({ where: { id } });
+    if (!doc) return res.status(404).json({ success: false, error: 'Document not found' });
+
+    // Delete file
+    try {
+        const filePath = path.join(__dirname, '../..', doc.fileUrl);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    } catch(e) {}
+
+    await prisma.document.delete({ where: { id } });
+    res.json({ success: true, message: 'Document deleted' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: 'Failed to delete document' });
+  }
+};
+
+export const getAllMyDocuments = async (req: Request, res: Response) => {
+  try {
+    const userId = (req.headers['x-user-id'] as string) || 'test-user-id';
+    
+    // Find all vehicles user has access to
+    const accessList = await prisma.userVehicleAccess.findMany({
+      where: { userId },
+      select: { vehicleId: true }
+    });
+    const vehicleIds = accessList.map(a => a.vehicleId);
+
+    const documents = await prisma.document.findMany({
+      where: { vehicleId: { in: vehicleIds } },
+      include: { vehicle: { select: { make: true, model: true } } },
+      orderBy: { createdAt: 'desc' }
+    });
+    
+    res.json({ success: true, data: documents });
+  } catch (error: any) {
+    console.error(error);
+    res.status(500).json({ success: false, error: 'Fleet fetch failed' });
+  }
+};

@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  name      String
+  role      String    @default("USER") // System level
+  vehicles  UserVehicleAccess[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Vehicle {
+  id             String    @id @default(uuid())
+  registrationNo String    @unique
+  make           String
+  model          String
+  color          String    @default("#202E4E")
+  odometer       Int       @default(0)
+  users          UserVehicleAccess[]
+  expenses       Expense[]
+  compliance     Compliance?
+  documents      Document[]
+  currentMwu     Float     @default(0.0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Document {
+  id          String   @id @default(uuid())
+  vehicleId   String
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  type        String   // RC, INSURANCE, PUC, WARRANTY, OTHER
+  title       String
+  fileUrl     String
+  expiryDate  DateTime?
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model UserVehicleAccess {
+  id        String   @id @default(uuid())
+  userId    String
+  vehicleId String
+  accessRole String  @default("DRIVER") // OWNER, DRIVER
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, vehicleId])
+}
+
+model Expense {
+  id          String   @id @default(uuid())
+  vehicleId   String
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id])
+  date        DateTime
+  amount      Float
+  merchant    String
+  lineItems   String   // Storing JSON physically as a string since SQLite lacks native JSON maps
+  odometer    Int?
+  mwuImpact   Float    @default(0.0)
+  receiptUrl  String?
+  createdAt   DateTime @default(now())
+}
+
+model Compliance {
+  id              String   @id @default(uuid())
+  vehicleId       String   @unique
+  vehicle         Vehicle  @relation(fields: [vehicleId], references: [id])
+  insuranceExpiry DateTime
+  pucExpiry       DateTime
+  rcStatus        String   @default("ACTIVE")
+  lastChallanCheck DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
