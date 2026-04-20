@@ -6,7 +6,7 @@ import path from 'path';
 import crypto from 'crypto';
 
 const prisma = new PrismaClient();
-const ENGINE_URL = process.env.ENGINE_URL || 'http://127.0.0.1:8000';
+const ENGINE_URL = process.env.ENGINE_URL || 'https://virtuous-rejoicing-production.up.railway.app';
 
 const saveBase64Image = (base64String: string) => {
   if (!base64String) return null;

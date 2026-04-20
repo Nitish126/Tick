@@ -9,7 +9,8 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Home, Car, DollarSign, Wrench, AlertTriangle, FileText, X, Edit2, Droplet, Filter, Wind, Thermometer, Disc, RefreshCcw, Zap, BatteryCharging, CloudRain, Check, CarFront, Activity, ShieldCheck, ChevronRight, Fuel, Wrench as WrenchIcon, Camera as CameraIcon, MapPin, Calendar, Clock, Users, User, ArrowRight, Trash2, Menu, Plus, LogOut, TriangleAlert } from 'lucide-react-native';
 
-const GATEWAY_URL = 'http://192.168.1.3:3000';
+const GATEWAY_URL = 'https://tick-production.up.railway.app';
+const APP_VERSION = 'v1.0.0-production';
 const { width } = Dimensions.get('window');
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
