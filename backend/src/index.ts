@@ -78,7 +78,7 @@ async function connectToDatabase() {
   console.log('Running background migrations...');
   
   // 1. Run migrations internally so startup doesn't fail
-  exec('npx prisma migrate deploy', (error, stdout, stderr) => {
+  exec('npx prisma migrate deploy', (error: any, stdout: string, stderr: string) => {
     if (error) {
       console.error(`Migration error: ${error.message}`);
       return;
