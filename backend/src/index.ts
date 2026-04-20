@@ -52,6 +52,10 @@ app.get('/health', async (req, res) => {
   }
 });
 
+app.get('/', (req, res) => {
+  res.json({ status: 'OK', service: 'vehicle-exp-backend-root' });
+});
+
 // GLOBAL ERROR HANDLER
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('SERVER ERROR:', err.stack);
