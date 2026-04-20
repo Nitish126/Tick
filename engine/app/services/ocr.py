@@ -1,9 +1,6 @@
 import os
 import io
 from datetime import date
-from pydantic import BaseModel, conlist
-from google import genai
-from google.genai import types
 from app.core.schema import OCRResponseSchema, LineItem
 from fastapi import HTTPException
 import base64
@@ -14,6 +11,9 @@ def mock_process_image(image_base64: str) -> OCRResponseSchema:
     Real AI OCR ingestion using Google Gemini Vision API.
     Decodes base64, sends to Gemini 1.5 Flash, and enforces the strict Pydantic JSON schema.
     """
+    # Lazy loading to prevent startup 502s
+    from google import genai
+    from google.genai import types
     
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:

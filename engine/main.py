@@ -5,11 +5,14 @@ from app.api.endpoints import router
 
 app = FastAPI(title="MWU Engine & OCR Service")
 
-app.include_router(router, prefix="/api")
-
 @app.get("/health")
 def health_check():
-    return {"status": "OK", "service": "mwu-engine"}
+    return {"status": "OK", "service": "mwu-engine", "version": "v1.0.1"}
+
+print("Starting MWU Engine & OCR Service... (Instant Bind Mode)")
+
+from app.api.endpoints import router
+app.include_router(router, prefix="/api")
 
 if __name__ == "__main__":
     import uvicorn
