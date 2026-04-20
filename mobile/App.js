@@ -10,7 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Home, Car, DollarSign, Wrench, AlertTriangle, FileText, X, Edit2, Droplet, Filter, Wind, Thermometer, Disc, RefreshCcw, Zap, BatteryCharging, CloudRain, Check, CarFront, Activity, ShieldCheck, ChevronRight, Fuel, Wrench as WrenchIcon, Camera as CameraIcon, MapPin, Calendar, Clock, Users, User, ArrowRight, Trash2, Menu, Plus, LogOut, TriangleAlert } from 'lucide-react-native';
 
 const GATEWAY_URL = 'https://tick-production-2e45.up.railway.app';
-const APP_VERSION = 'v1.0.5-sync-diag';
+const APP_VERSION = 'v1.0.6-resilience';
 const { width } = Dimensions.get('window');
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {

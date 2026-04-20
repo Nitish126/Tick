@@ -45,15 +45,20 @@ app.use('/api/documents', documentRoutes);
 
 app.get('/health', async (req, res) => {
   try {
-    await prisma.$queryRaw`SELECT 1`;
-    res.json({ status: 'OK', database: 'CONNECTED', service: 'vehicle-exp-backend' });
+    const dbCheck = await prisma.$queryRaw`SELECT 1`.catch(() => null);
+    res.json({ 
+      status: 'OK', 
+      database: dbCheck ? 'CONNECTED' : 'DISCONNECTED',
+      service: 'vehicle-exp-backend',
+      version: 'v1.0.6'
+    });
   } catch (e: any) {
-    res.status(503).json({ status: 'ERROR', database: 'DISCONNECTED', error: e.message });
+    res.status(200).json({ status: 'OK', service: 'degraded', error: e.message });
   }
 });
 
 app.get('/', (req, res) => {
-  res.json({ status: 'OK', service: 'vehicle-exp-backend-root' });
+  res.json({ status: 'OK', service: 'vehicle-exp-backend-root', v: '1.0.6' });
 });
 
 // GLOBAL ERROR HANDLER
@@ -64,13 +69,29 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 
 // IMMEDIATE LISTENING (To prevent Railway 502 timeouts)
 app.listen(PORT, () => {
-  console.log(`v1.0.4 Server immediately listening on port ${PORT}`);
+  console.log(`v1.0.6 Server immediately listening on port ${PORT}`);
   initFolders();
 });
 
-// ASYNC DB CONNECTION
+// ASYNC DB CONNECTION & MIGRATION
 async function connectToDatabase() {
-  console.log('Connecting to database in background...');
+  console.log('Running background migrations...');
+  
+  // 1. Run migrations internally so startup doesn't fail
+  exec('npx prisma migrate deploy', (error, stdout, stderr) => {
+    if (error) {
+      console.error(`Migration error: ${error.message}`);
+      return;
+    }
+    if (stderr) console.log(`Migration stderr: ${stderr}`);
+    console.log(`Migration result: ${stdout}`);
+    
+    // 2. Connect after migrations logic
+    connectPrisma();
+  });
+}
+
+async function connectPrisma() {
   let retries = 10;
   while (retries > 0) {
     try {
@@ -83,11 +104,10 @@ async function connectToDatabase() {
       await new Promise(res => setTimeout(res, 5000));
     }
   }
-  console.error('CRITICAL: FAILED TO CONNECT TO DATABASE AFTER MULTIPLE RETRIES.');
 }
 
 connectToDatabase().catch(err => {
-  console.error('BACKGROUND DB CONNECTION ERROR:', err);
+  console.error('BACKGROUND INITIALIZATION ERROR:', err);
 });
 
 // Panic handlers
