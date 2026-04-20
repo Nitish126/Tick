@@ -425,7 +425,10 @@ function MotoKeeperApp() {
       }
       fetchData(); 
       setOverlay(null);
-    } catch (e) { Alert.alert("Error", "Could not save vehicle."); } 
+    } catch (e) { 
+       const errorMsg = e.response?.data?.error || "Could not save vehicle.";
+       Alert.alert("Error", errorMsg); 
+    } 
     finally { setLoading(false); }
   };
 
@@ -784,9 +787,9 @@ function MotoKeeperApp() {
                   <Text style={{color: isDarkMode ? 'rgba(255,255,255,0.4)' : C.textSub, fontSize: 11, fontWeight: '900', letterSpacing: 1.5, marginBottom: 15}}>MY DOCUMENT VAULT</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{flexGrow: 0, marginBottom: 40}}>
                      {fleetDocuments.length === 0 ? (
-                        <View style={{width: 140, aspectRatio: 0.7, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 20, justifyContent: 'center', alignItems: 'center', borderStyle: 'dashed', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)'}}>
-                           <FileText color="rgba(255,255,255,0.1)" size={24} />
-                           <Text style={{color: 'rgba(255,255,255,0.5)', fontSize: 9, fontWeight: '700', marginTop: 2}} numberOfLines={1}>No Docs</Text>
+                        <View style={{width: 140, aspectRatio: 0.7, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.03)', borderRadius: 20, justifyContent: 'center', alignItems: 'center', borderStyle: 'dashed', borderWidth: 1, borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}}>
+                           <FileText color={isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.2)'} size={24} />
+                           <Text style={{color: isDarkMode ? 'rgba(255,255,255,0.5)' : C.textSub, fontSize: 9, fontWeight: '700', marginTop: 2}} numberOfLines={1}>No Docs</Text>
                         </View>
                      ) : fleetDocuments.map((doc, idx) => (
                         <TouchableOpacity key={idx} style={{marginRight: 15, width: 140, aspectRatio: 0.7, backgroundColor: isDarkMode ? '#1C1C1E' : '#FFFFFF', borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}} onPress={() => { setSelectedExpense({ receiptUrl: doc.fileUrl, merchant: doc.title, amount: 0, date: doc.createdAt }); setOverlay('EXPENSE_DETAIL'); }}>

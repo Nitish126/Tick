@@ -37,8 +37,8 @@ export const createVehicle = async (req: Request, res: Response) => {
 
     res.status(201).json({ success: true, data: newVehicle });
   } catch (error: any) {
-    console.error(error);
-    res.status(500).json({ success: false, error: 'Failed to create vehicle' });
+    console.error('Create Vehicle Error:', error);
+    res.status(500).json({ success: false, error: error.message || 'Failed to create vehicle' });
   }
 };
 
@@ -203,7 +203,8 @@ export const updateVehicle = async (req: Request, res: Response) => {
     const updated = await prisma.vehicle.update({ where: { id }, data });
     res.json({ success: true, data: updated });
   } catch (error: any) {
-    res.status(500).json({ success: false, error: 'Failed to update vehicle' });
+    console.error('Update Vehicle Error:', error);
+    res.status(500).json({ success: false, error: error.message || 'Failed to update vehicle' });
   }
 };
 
