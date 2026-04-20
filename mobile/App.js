@@ -1182,7 +1182,7 @@ function MotoKeeperApp() {
                          </TouchableOpacity>
                       ))}
                   </ScrollView>
-                  <TextInput style={[styles.inputField, {marginBottom: 0, color: isDarkMode ? C.white : C.blueDark}]} placeholder="Enter Make manually..." placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.2)' : C.textSub} value={newBrand} onChangeText={setNewBrand} />
+                  <TextInput style={[styles.inputField, {marginBottom: 0, color: isDarkMode ? C.white : C.blueDark, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : C.white}]} placeholder="Enter Make manually..." placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.2)' : C.textSub} value={newBrand} onChangeText={setNewBrand} />
 
                   <Text style={styles.inputLabel}>VEHICLE MODEL</Text>
                   {(() => {
@@ -1470,7 +1470,7 @@ const styles = StyleSheet.create({
   btnAdd: { backgroundColor: C.bluePrimary, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10 },
   
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 20 },
-  inputLabel: { fontSize: 11, fontWeight: '900', color: C.textSub, marginTop: 22, marginBottom: 8, letterSpacing: 1.0 },
+  inputLabel: { fontSize: 11, fontWeight: '900', color: '#94A3B8', marginTop: 22, marginBottom: 8, letterSpacing: 1.0 },
   inputField: { backgroundColor: C.white, borderWidth: 1, borderColor: C.border, padding: 16, borderRadius: 14, fontSize: 16, color: C.blueDark, fontWeight: '600' },
 
   sheetContainer: { backgroundColor: C.white, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 25, paddingBottom: 50, shadowColor: C.blueDark, shadowOffset: {width: 0, height: -4}, shadowOpacity: 0.05, shadowRadius: 20 },
