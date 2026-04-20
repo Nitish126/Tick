@@ -89,7 +89,13 @@ def mock_process_image(image_base64: str) -> OCRResponseSchema:
         return parsed_data
 
     except Exception as e:
-        print(f"Error during Gemini OCR processing: {getattr(e, 'message', str(e))}")
+        err_msg = str(e)
+        print(f"Error during Gemini OCR processing: {err_msg}")
+        
+        # Specific handling for 429 Resource Exhausted
+        if "429" in err_msg or "RESOURCE_EXHAUSTED" in err_msg:
+             raise HTTPException(status_code=429, detail="AI OCR Quota Exhausted. Please move to paid tier or wait for reset.")
+             
         import traceback
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Failed to process OCR via Vision Model: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to process OCR via Vision Model: {err_msg}")

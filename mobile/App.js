@@ -101,7 +101,7 @@ const MANUFACTURER_LOGOS = {
 const getVehicleAsset = (make, model, isDark) => {
   if (!model) return null;
   const m = model.trim().toLowerCase();
-  const mk = make?.trim().toLowerCase();
+  const mk = make.trim().toLowerCase();
   
   // 1. Try to find the specific car model image
   const cardKey = Object.keys(CAR_IMAGES).find(k => m.includes(k.toLowerCase()));
@@ -110,7 +110,7 @@ const getVehicleAsset = (make, model, isDark) => {
   }
   
   // 2. Fallback to Manufacturer Logo
-  const logoKey = Object.keys(MANUFACTURER_LOGOS).find(k => mk?.includes(k.toLowerCase()) || m.includes(k.toLowerCase()));
+  const logoKey = Object.keys(MANUFACTURER_LOGOS).find(k => mk.includes(k.toLowerCase()) || m.includes(k.toLowerCase()));
   if (logoKey) {
     return { type: 'LOGO', source: MANUFACTURER_LOGOS[logoKey] };
   }
@@ -270,7 +270,7 @@ function MotoKeeperApp() {
            if (filterC === 'TYRES' && (fullText.includes('TYRE') || fullText.includes('WHEEL') || fullText.includes('ALIGNMENT'))) return true;
            
            // Strict fallback for manual tags
-           const firstTag = h.lineItems ? (Array.isArray(h.lineItems) ? h.lineItems : JSON.parse(h.lineItems))[0]?.description?.toUpperCase() : '';
+           const firstTag = h.lineItems ? (Array.isArray(h.lineItems) ? h.lineItems : JSON.parse(h.lineItems))[0].description.toUpperCase() : '';
            if (filterC === 'FUEL' && firstTag === 'FUEL') return true;
            if (filterC === 'SERVICE' && firstTag === 'REPAIR') return true;
            
@@ -282,7 +282,7 @@ function MotoKeeperApp() {
      let total = 0, fuel = 0, service = 0;
      filtered.forEach(h => {
         total += h.amount;
-        const tag = h.lineItems ? (Array.isArray(h.lineItems) ? h.lineItems : JSON.parse(h.lineItems))[0]?.description?.toUpperCase() : '';
+        const tag = h.lineItems ? (Array.isArray(h.lineItems) ? h.lineItems : JSON.parse(h.lineItems))[0].description.toUpperCase() : '';
         const fullTxt = (h.merchant + ' ' + tag).toUpperCase();
         if (tag === 'FUEL' || fullTxt.includes('FUEL') || fullTxt.includes('PETROL') || fullTxt.includes('DIESEL') || fullTxt.includes('PUMP')) fuel += h.amount;
         else if (tag === 'REPAIR' || fullTxt.includes('SERVICE') || fullTxt.includes('REPAIR') || fullTxt.includes('MAINTENANCE')) service += h.amount;
@@ -300,10 +300,12 @@ function MotoKeeperApp() {
       // Compute Health & Maintenance logic
       const healthArray = vehicles.map(v => {
          const vHistory = history.filter(h => h.vehicleId === v.id);
-         const lastAlign = vHistory.find(h => (h.merchant + (h.lineItems||'')).toUpperCase().includes('ALIGNMENT'))?.odometer || 0;
+         const alignMatch = vHistory.find(h => (h.merchant + (h.lineItems||'')).toUpperCase().includes('ALIGNMENT'));
+         const lastAlign = alignMatch ? (alignMatch.odometer || 0) : 0;
          const distSinceAlign = v.odometer - lastAlign;
          
-         const lastOil = vHistory.find(h => (h.merchant + (h.lineItems||'')).toUpperCase().includes('OIL'))?.odometer || 0;
+         const oilMatch = vHistory.find(h => (h.merchant + (h.lineItems||'')).toUpperCase().includes('OIL'));
+         const lastOil = oilMatch ? (oilMatch.odometer || 0) : 0;
          const distSinceOil = v.odometer - lastOil;
 
          return {
@@ -388,7 +390,7 @@ function MotoKeeperApp() {
       setNewBrand(selectedVehicle.make);
       setNewModel(selectedVehicle.model);
       setNewColor(selectedVehicle.color);
-      setNewOdo(selectedVehicle.odometer?.toString() || "");
+      setNewOdo(selectedVehicle.odometer.toString() || "");
       setNewVin(selectedVehicle.registrationNo);
       setEditingVehicleId(selectedVehicle.id);
       setOverlay('ADD_VEHICLE');
@@ -451,8 +453,13 @@ function MotoKeeperApp() {
       setParsedData(response.data.data);
       setScanOdo(""); // reset ODO field
       // Don't refetch instantly. Wait until user appends their Odometer.
-    } catch (err) { Alert.alert('Error', 'Failed to extract bill via API.'); } 
-    finally { setLoading(false); }
+    } catch (err) { 
+       if (err.response?.status === 429) {
+          Alert.alert('Quota Reached', 'Gemini AI free-tier limit exceeded. Please wait a minute or moving to a paid tier for heavy testing.');
+       } else {
+          Alert.alert('Error', 'Failed to extract bill via AI API.'); 
+       }
+    } finally { setLoading(false); }
   };
 
   const finalizeScan = async () => {
@@ -574,17 +581,17 @@ function MotoKeeperApp() {
                               {record.receiptUrl ? <Image source={{uri: `${GATEWAY_URL}${record.receiptUrl}`}} style={styles.expImage} /> : <ShieldCheck color={isDarkMode ? C.bluePrimary : C.blueDark} size={22} />}
                              </View>
                              <View style={styles.expMiddle}>
-                                <Text style={[styles.expPrimaryText, {color: isDarkMode ? C.white : C.blueDark}]} numberOfLines={1}>{record.vehicle?.make} {record.vehicle?.model}</Text>
+                                <Text style={[styles.expPrimaryText, {color: isDarkMode ? C.white : C.blueDark}]} numberOfLines={1}>{record.vehicle && record.vehicle.make} {record.vehicle && record.vehicle.model}</Text>
                                 <View style={{flexDirection: 'row', alignItems: 'center', marginTop: 4, marginBottom: 2}}>
                                    <View style={[styles.expTag, {backgroundColor: record.amount > 5000 ? C.redLight : C.blueLight}]}>
-                                      <Text style={[styles.expTagText, {color: record.amount > 5000 ? C.redPrimary : C.bluePrimary}]}>{record.lineItems?.[0]?.description?.toUpperCase() || 'LOG'}</Text>
+                                      <Text style={[styles.expTagText, {color: record.amount > 5000 ? C.redPrimary : C.bluePrimary}]}>{(record.lineItems && record.lineItems.length > 0) ? (record.lineItems[0].description ? record.lineItems[0].description.toUpperCase() : 'LOG') : 'LOG'}</Text>
                                    </View>
                                 </View>
                                 <Text style={[styles.expSubText, {color: isDarkMode ? 'rgba(255,255,255,0.7)' : C.textSub}]} numberOfLines={1}>{record.merchant || 'Unknown'}</Text>
                              </View>
                              <View style={{alignItems: 'flex-end', justifyContent: 'center'}}>
                                 <Text style={[styles.expTotal, {color: isDarkMode ? C.white : C.blueDark}]}>₹{record.amount.toLocaleString('en-IN')}</Text>
-                                <ChevronRight color={C.border} size={16} style={{marginTop: 6}} />
+                                <ChevronRight color={isDarkMode ? 'rgba(255,255,255,0.2)' : C.border} size={16} style={{marginTop: 6}} />
                              </View>
                           </TouchableOpacity>
                        ))}
@@ -624,16 +631,15 @@ function MotoKeeperApp() {
                                <View style={{width: 20, height: 20, borderRadius: 10, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', borderWidth: 1, borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'transparent', justifyContent: 'center', alignItems: 'center'}}>
                                   <User size={10} color={isDarkMode ? "#FFF" : C.blueDark} />
                                </View>
-                               <Text style={{color: isDarkMode ? 'rgba(255,255,255,0.4)' : C.textSub, fontSize: 8, fontWeight: '900', marginLeft: 8, letterSpacing: 1}}>{v.activeDriver?.toUpperCase() || 'OWNER'}</Text>
+                               <Text style={{color: isDarkMode ? 'rgba(255,255,255,0.4)' : C.textSub, fontSize: 8, fontWeight: '900', marginLeft: 8, letterSpacing: 1}}>{v.activeDriver.toUpperCase() || 'OWNER'}</Text>
                             </View>
 
                             <Text style={{fontSize: 24, color: isDarkMode ? '#FFFFFF' : C.blueDark, fontWeight: '900', letterSpacing: -1.0}} numberOfLines={1}>{v.make} {v.model}</Text>
                             <Text style={{fontSize: 11, color: isDarkMode ? 'rgba(255,255,255,0.3)' : C.textSub, fontWeight: '800', letterSpacing: 1.5, marginBottom: 15}}>{(v.registrationNo || 'ABC 123').toUpperCase()}</Text>
 
-                            <View style={{flexDirection: 'row', gap: 12, alignItems: 'center'}}>
+                            <View style={{flexDirection: 'row', alignItems: 'center'}}>
                                <View>
                                   <Text style={{color: 'rgba(255,255,255,0.3)', fontSize: 8, fontWeight: '900', letterSpacing: 0.5, marginBottom: 1}}>ODOMETER</Text>
-                                  <Text style={{color: '#FFF', fontSize: 13, fontWeight: '800'}}>{v.odometer?.toLocaleString() || '0'}<Text style={{fontSize: 9, color: 'rgba(255,255,255,0.2)'}> km</Text></Text>
                                </View>
                                <View style={{width: 1, height: 16, backgroundColor: 'rgba(255,255,255,0.1)'}} />
                                <View>
@@ -664,20 +670,20 @@ function MotoKeeperApp() {
                                   style={{position: 'absolute', width: '100%', height: '100%', zIndex: 2}}
                                />
                              )}
-                            {asset?.type === 'IMAGE' ? (
+                            {asset.type === 'IMAGE' ? (
                                <Image 
                                  source={asset.source} 
                                  style={{width: '140%', height: '100%', marginLeft: '-20%'}} 
                                  resizeMode="contain" 
                                />
-                            ) : asset?.type === 'LOGO' ? (
+                            ) : asset.type === 'LOGO' ? (
                                <View style={{flex: 1, alignItems: 'center', justifyContent: 'center', padding: 25}}>
                                   <Image source={asset.source} style={{width: 70, height: 70}} resizeMode="contain" />
                                </View>
                             ) : (
                                <View style={{flex: 1, alignItems: 'center', justifyContent: 'center'}}>
                                   <View style={{backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}}>
-                                     <Text style={{color: isDarkMode ? '#FFF' : C.blueDark, fontSize: 13, fontWeight: '900', letterSpacing: 2, textAlign: 'center'}}>{v.make?.toUpperCase() || 'VEHICLE'}</Text>
+                                     <Text style={{color: isDarkMode ? '#FFF' : C.blueDark, fontSize: 13, fontWeight: '900', letterSpacing: 2, textAlign: 'center'}}>{v.make.toUpperCase() || 'VEHICLE'}</Text>
                                   </View>
                                   <View style={{marginTop: 10, opacity: 0.1}}>
                                      <Car size={32} color={isDarkMode ? "#FFF" : C.blueDark} />
@@ -710,17 +716,15 @@ function MotoKeeperApp() {
         {activeTab === 'EXPENSES' && (
           <View style={[styles.canvas, {backgroundColor: isDarkMode ? '#000000' : C.bg}]}>
              <Text style={[styles.headerHero, {color: isDarkMode ? C.white : C.blueDark}]}>Log Garage Data</Text>
-             <Text style={{color: isDarkMode ? 'rgba(255,255,255,0.6)' : C.textSub, fontSize: 16, marginTop: 5, lineHeight: 24, paddingRight: 20}}>Keep your vehicle records pristine. Log manual visits or use AI to automatically evaluate the physical receipts.</Text>
-
-             <View style={{flex: 1}} />
-
-             <View style={{flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, paddingHorizontal: 4}}>
+             <Text style={{color: isDarkMode ? 'rgba(255,255,255,0.6)' : C.textSub, fontSize: 16, marginTop: 5, lineHeight: 24, paddingRight: 20}}>Keep your vehicle records pristine. Log manual visits or use AI to automatic</Text>
+             
+             <View style={{flexDirection: 'row', marginTop: 30, marginBottom: 30}}>
                  <TouchableOpacity style={[styles.logSquareCard, isDarkMode && {backgroundColor: '#1E293B', borderColor: 'rgba(255,255,255,0.1)'}, {marginRight: 8}]} onPress={() => { setManualForm({...manualForm, category: 'REPAIR'}); setOverlay('VEHICLE_PICKER_MANUAL'); }}>
                      <View style={[styles.logIconRound, {backgroundColor: isDarkMode ? 'rgba(248, 113, 113, 0.1)' : C.redLight}]}><WrenchIcon color={C.redPrimary} size={28} /></View>
                      <Text style={[styles.logSquareTitle, {color: isDarkMode ? C.white : C.blueDark}]}>Service</Text>
                      <Text style={[styles.logSquareSub, {color: isDarkMode ? 'rgba(255,255,255,0.4)' : C.textSub}]}>Invoices & Labor</Text>
                  </TouchableOpacity>
-
+ 
                  <TouchableOpacity style={[styles.logSquareCard, isDarkMode && {backgroundColor: '#1E293B', borderColor: 'rgba(255,255,255,0.1)'}, {marginLeft: 8}]} onPress={() => { setManualForm({...manualForm, category: 'FUEL'}); setOverlay('VEHICLE_PICKER_MANUAL'); }}>
                      <View style={[styles.logIconRound, {backgroundColor: isDarkMode ? 'rgba(56, 189, 248, 0.1)' : C.blueLight}]}><Fuel color={C.bluePrimary} size={28} /></View>
                      <Text style={[styles.logSquareTitle, {color: isDarkMode ? C.white : C.blueDark}]}>Fuel Log</Text>
@@ -752,7 +756,7 @@ function MotoKeeperApp() {
         {/* COMMAND CENTER OVERLAY */}
         {/* COMMAND CENTER / FLEET CONTROL (V2) */}
         <Modal visible={overlay === 'COMMAND_CENTER'} animationType="slide" presentationStyle="pageSheet" onShow={loadFleetIntelligence} onRequestClose={() => setOverlay(null)}>
-            <View style={{flex: 1, backgroundColor: isDarkMode ? "#000000" : C.bg}}>
+            <View style={{flex: 1, backgroundColor: isDarkMode ? '#000000' : C.bg}}>
                {/* Fixed Header */}
                <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 25, borderBottomWidth: 1, borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.1)'}}>
                   <Text style={{fontSize: 22, fontWeight: '800', color: isDarkMode ? C.white : C.blueDark, letterSpacing: -0.5}}>Command Center</Text>
@@ -764,7 +768,7 @@ function MotoKeeperApp() {
                   {/* USER IDENTITY CARD */}
                   <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 35, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : C.white, padding: 20, borderRadius: 28, borderWidth: 1, borderColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}}>
                      <View style={{width: 64, height: 64, borderRadius: 24, backgroundColor: C.bluePrimary, justifyContent: 'center', alignItems: 'center', marginRight: 20}}>
-                        <Text style={{color: isDarkMode ? C.white : C.blueDark, fontSize: 24, fontWeight: '900'}}>{myUserId ? myUserId.charAt(0).toUpperCase() : 'U'}</Text>
+                        <Text style={{color: C.white, fontSize: 24, fontWeight: '900'}}>{myUserId ? myUserId.charAt(0).toUpperCase() : 'U'}</Text>
                      </View>
                      <View style={{flex: 1}}>
                         <Text style={{color: isDarkMode ? C.white : C.blueDark, fontSize: 20, fontWeight: '800'}}>Fleetr ID</Text>
@@ -781,14 +785,14 @@ function MotoKeeperApp() {
                      {fleetDocuments.length === 0 ? (
                         <View style={{width: 140, aspectRatio: 0.7, backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 20, justifyContent: 'center', alignItems: 'center', borderStyle: 'dashed', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)'}}>
                            <FileText color="rgba(255,255,255,0.1)" size={24} />
-                           <Text style={{color: isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.3)', fontSize: 10, fontWeight: '800', marginTop: 10}}>Empty Vault</Text>
+                           <Text style={{color: 'rgba(255,255,255,0.5)', fontSize: 9, fontWeight: '700', marginTop: 2}} numberOfLines={1}>No Docs</Text>
                         </View>
                      ) : fleetDocuments.map((doc, idx) => (
-                        <TouchableOpacity key={idx} style={{marginRight: 15, width: 140, aspectRatio: 0.7, backgroundColor: '#1C1C1E', borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)'}} onPress={() => { setSelectedExpense({ receiptUrl: doc.fileUrl, merchant: doc.title, amount: 0, date: doc.createdAt }); setOverlay('EXPENSE_DETAIL'); }}>
+                        <TouchableOpacity key={idx} style={{marginRight: 15, width: 140, aspectRatio: 0.7, backgroundColor: isDarkMode ? '#1C1C1E' : '#FFFFFF', borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}} onPress={() => { setSelectedExpense({ receiptUrl: doc.fileUrl, merchant: doc.title, amount: 0, date: doc.createdAt }); setOverlay('EXPENSE_DETAIL'); }}>
                            <Image source={{uri: `${GATEWAY_URL}${doc.fileUrl}`}} style={{flex: 1}} resizeMode="cover" />
                            <View style={{position: 'absolute', bottom: 0, left: 0, right: 0, padding: 12, backgroundColor: 'rgba(0,0,0,0.6)'}}>
                               <Text style={{color: isDarkMode ? C.white : C.blueDark, fontSize: 10, fontWeight: '900', letterSpacing: 0.5}} numberOfLines={1}>{doc.type}</Text>
-                              <Text style={{color: 'rgba(255,255,255,0.5)', fontSize: 9, fontWeight: '700', marginTop: 2}} numberOfLines={1}>{doc.vehicle?.make} {doc.vehicle?.model}</Text>
+                              <Text style={{color: 'rgba(255,255,255,0.5)', fontSize: 9, fontWeight: '700', marginTop: 2}} numberOfLines={1}>{doc.vehicle.make} {doc.vehicle.model}</Text>
                            </View>
                         </TouchableOpacity>
                      ))}
@@ -814,8 +818,8 @@ function MotoKeeperApp() {
                             <View style={{width: 54, height: 54, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.05)', justifyContent: 'center', alignItems: 'center', marginRight: 16}}>
                                {(() => {
                                   const asset = getVehicleAsset(vh.make, vh.model, isDarkMode);
-                                  if (asset?.type === 'IMAGE') return <Image source={asset.source} style={{width: 40, height: 30}} resizeMode="contain" />;
-                                  if (asset?.type === 'LOGO') return <Image source={asset.source} style={{width: 30, height: 30}} resizeMode="contain" />;
+                                  if (asset.type === 'IMAGE') return <Image source={asset.source} style={{width: 40, height: 30}} resizeMode="contain" />;
+                                  if (asset.type === 'LOGO') return <Image source={asset.source} style={{width: 30, height: 30}} resizeMode="contain" />;
                                   return <Car color={C.white} size={24} />;
                                })()}
                             </View>
@@ -901,8 +905,8 @@ function MotoKeeperApp() {
 
         {/* AUTH MODAL */}
         <Modal visible={overlay === 'AUTH'} animationType="fade">
-           <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: C.bg}}>
-              <Text style={{fontSize: 32, fontWeight: '900', color: C.blueDark, marginBottom: 40}}>Welcome Back</Text>
+           <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: isDarkMode ? '#000' : C.bg}}>
+              <Text style={{fontSize: 32, fontWeight: '900', color: isDarkMode ? C.white : C.blueDark, marginBottom: 40}}>Welcome Back</Text>
               <TouchableOpacity style={{backgroundColor: C.bluePrimary, padding: 20, borderRadius: 20}} onPress={() => setOverlay(null)}>
                  <Text style={{color: C.white, fontWeight: '800', fontSize: 16}}>Sign In to Continue</Text>
               </TouchableOpacity>
@@ -975,9 +979,9 @@ function MotoKeeperApp() {
                              )}
                             {(() => {
                                const asset = getVehicleAsset(selectedVehicle.make, selectedVehicle.model, isDarkMode);
-                               if (asset?.type === 'IMAGE') {
+                               if (asset.type === 'IMAGE') {
                                   return <Image source={asset.source} style={{width: '140%', height: '100%', marginLeft: '-20%'}} resizeMode="contain" />;
-                               } else if (asset?.type === 'LOGO') {
+                               } else if (asset.type === 'LOGO') {
                                   return <View style={{flex: 1, alignItems: 'center', justifyContent: 'center', padding: 25}}><Image source={asset.source} style={{width: 60, height: 60, opacity: isDarkMode ? 0.3 : 0.6}} resizeMode="contain" /></View>;
                                }
                                return <View style={{flex: 1, alignItems: 'center', justifyContent: 'center', opacity: 0.05}}><Car size={60} color={isDarkMode ? "#FFF" : C.blueDark} /></View>;
@@ -986,10 +990,10 @@ function MotoKeeperApp() {
                    </View>
 
                    {/* GROUPED STATS SLABS */}
-                   <View style={{flexDirection: 'row', gap: 12, marginBottom: 30}}>
+                   <View style={{flexDirection: 'row', marginBottom: 30}}>
                       <View style={{flex: 1, backgroundColor: isDarkMode ? '#2C2C2E' : C.white, borderRadius: 16, padding: 18, borderWidth: 1, borderColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', shadowColor: C.blueDark, shadowOpacity: isDarkMode ? 0 : 0.02, elevation: 1}}>
                          <Text style={{color: isDarkMode ? 'rgba(255,255,255,0.3)' : C.textSub, fontSize: 10, fontWeight: '900', letterSpacing: 1.0, marginBottom: 8}}>ODOMETER</Text>
-                         <Text style={{color: isDarkMode ? C.white : C.blueDark, fontSize: 18, fontWeight: '800'}}>{selectedVehicle.odometer?.toLocaleString()}<Text style={{fontSize: 12, color: isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.3)'}}> km</Text></Text>
+                         <Text style={{color: isDarkMode ? C.white : C.blueDark, fontSize: 18, fontWeight: '800'}}>{(selectedVehicle.odometer || 0).toLocaleString()} <Text style={{fontSize: 12, color: isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.3)'}}>km</Text></Text>
                       </View>
                       <View style={{flex: 1, backgroundColor: isDarkMode ? '#2C2C2E' : C.white, borderRadius: 16, padding: 18, borderWidth: 1, borderColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', shadowColor: C.blueDark, shadowOpacity: isDarkMode ? 0 : 0.02, elevation: 1}}>
                          <Text style={{color: isDarkMode ? 'rgba(255,255,255,0.3)' : C.textSub, fontSize: 10, fontWeight: '900', letterSpacing: 1.0, marginBottom: 8}}>HEALTH</Text>
@@ -999,9 +1003,9 @@ function MotoKeeperApp() {
 
                    {/* DOCUMENT VAULT SECTION */}
                    <Text style={{color: isDarkMode ? C.white : C.blueDark, fontSize: 18, fontWeight: '800', marginBottom: 15, paddingHorizontal: 4}}>Document Vault</Text>
-                   <View style={{flexDirection: 'row', gap: 10, marginBottom: 35}}>
-                      {['RC', 'INSURANCE', 'PUC'].map((type) => {
-                         const doc = deepVehicleData?.documents?.find(d => d.type === type);
+                   <View style={{flexDirection: 'row', marginBottom: 35}}>
+                      {deepVehicleData && deepVehicleData.documents && ['RC', 'INSURANCE', 'PUC'].map((type) => {
+                         const doc = deepVehicleData.documents.find(d => d.type === type);
                          return (
                            <TouchableOpacity 
                              key={type} 
@@ -1043,7 +1047,7 @@ function MotoKeeperApp() {
 
                    {/* EXPENSE LEDGER IN VAULT */}
                    <Text style={{color: isDarkMode ? C.white : C.blueDark, fontSize: 18, fontWeight: '800', marginBottom: 15, paddingHorizontal: 4}}>Expense Ledger</Text>
-                   {deepVehicleData?.expenses?.map(record => (
+                   {deepVehicleData && deepVehicleData.expenses && deepVehicleData.expenses.map(record => (
                      <TouchableOpacity key={record.id} style={{backgroundColor: isDarkMode ? '#2C2C2E' : C.white, padding: 16, borderRadius: 20, flexDirection: 'row', alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: isDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.05)', shadowColor: C.blueDark, shadowOpacity: isDarkMode ? 0 : 0.05, shadowRadius: 10, elevation: 2}} onPress={() => { setSelectedExpense(record); setOverlay('EXPENSE_DETAIL'); }}>
                         <View style={{backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : C.grayLight, width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center'}}>
                           <Text style={{color: isDarkMode ? C.white : C.blueDark, fontSize: 20, fontWeight: "900"}}>₹</Text>
@@ -1052,13 +1056,13 @@ function MotoKeeperApp() {
                            <Text style={{color: isDarkMode ? C.white : C.blueDark, fontWeight: '800', fontSize: 15}}>{new Date(record.date).toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'})}</Text>
                            <Text style={{color: isDarkMode ? 'rgba(255,255,255,0.4)' : C.textSub, fontSize: 12, fontWeight: '600', marginTop: 2}}>{record.merchant || 'Unknown'}</Text>
                         </View>
-                        <Text style={{color: isDarkMode ? C.white : C.blueDark, fontWeight: '800', fontSize: 16}}>₹{record.amount?.toLocaleString()}</Text>
+                        <Text style={{color: isDarkMode ? C.white : C.blueDark, fontWeight: '800', fontSize: 16}}>₹{record.amount.toLocaleString()}</Text>
                      </TouchableOpacity>
                    ))}
-                   {(!deepVehicleData?.expenses || deepVehicleData.expenses.length === 0) && (
+                   {(!deepVehicleData || !deepVehicleData.expenses || deepVehicleData.expenses.length === 0) && (
                       <View style={{alignItems: 'center', paddingVertical: 40, opacity: 0.3}}>
-                         <Activity size={32} color={C.white} />
-                         <Text style={{color: C.white, marginTop: 15, fontWeight: '600'}}>No logs recorded</Text>
+                         <Activity size={32} color={isDarkMode ? C.white : C.blueDark} />
+                         <Text style={{color: isDarkMode ? C.white : C.blueDark, marginTop: 15, fontWeight: '600'}}>No logs recorded</Text>
                       </View>
                    )}
               </ScrollView>
@@ -1077,7 +1081,7 @@ function MotoKeeperApp() {
                 </View>
                 <ScrollView contentContainerStyle={{padding: 24}}>
                    <View style={{alignItems: 'center', marginBottom: 35}}>
-                      <Text style={{color: isDarkMode ? 'rgba(255,255,255,0.4)' : C.textSub, fontWeight: '700', fontSize: 13, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10}}>{selectedExpense.vehicle?.make || 'Vehicle Record'}</Text>
+                      <Text style={{color: isDarkMode ? 'rgba(255,255,255,0.4)' : C.textSub, fontWeight: '700', fontSize: 13, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10}}>{selectedExpense.vehicle.make || 'Vehicle Record'}</Text>
                       <Text style={{fontSize: 48, fontWeight: '900', letterSpacing: -1.5, color: isDarkMode ? C.white : C.blueDark}}>₹{selectedExpense.amount.toLocaleString('en-IN')}</Text>
                       <View style={{flexDirection: 'row', alignItems: 'center', marginTop: 10}}>
                          <MapPin size={14} color={isDarkMode ? 'rgba(255,255,255,0.6)' : C.textSub} style={{marginRight: 6}} />
@@ -1132,12 +1136,12 @@ function MotoKeeperApp() {
                   <Text style={styles.inputLabel}>MAKE (MANUFACTURER)</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginBottom: 10}}>
                       {["Maruti Suzuki", "Hyundai", "Tata", "Mahindra", "Kia", "Toyota", "Honda", "MG", "Volkswagen", "Skoda", "Other"].map(brand => (
-                         <TouchableOpacity key={brand} onPress={() => { setNewBrand(brand === "Other" ? "" : brand); setNewModel(""); }} style={{paddingHorizontal: 20, paddingVertical: 12, backgroundColor: newBrand === brand ? C.bluePrimary : C.white, borderRadius: 20, marginRight: 10, borderWidth: 1, borderColor: C.border}}>
-                             <Text style={{fontWeight: '800', color: newBrand === brand ? C.white : C.blueDark}}>{brand}</Text>
+                         <TouchableOpacity key={brand} onPress={() => { setNewBrand(brand === "Other" ? "" : brand); setNewModel(""); }} style={{paddingHorizontal: 20, paddingVertical: 12, backgroundColor: newBrand === brand ? C.bluePrimary : (isDarkMode ? 'rgba(255,255,255,0.05)' : C.white), borderRadius: 20, marginRight: 10, borderWidth: 1, borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : C.border}}>
+                             <Text style={{fontWeight: '800', color: newBrand === brand ? C.white : (isDarkMode ? C.white : C.blueDark)}}>{brand}</Text>
                          </TouchableOpacity>
                       ))}
                   </ScrollView>
-                  <TextInput style={[styles.inputField, {marginBottom: 0}]} placeholder="Enter Make manually..." value={newBrand} onChangeText={setNewBrand} />
+                  <TextInput style={[styles.inputField, {marginBottom: 0, color: isDarkMode ? C.white : C.blueDark}]} placeholder="Enter Make manually..." placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.2)' : C.textSub} value={newBrand} onChangeText={setNewBrand} />
 
                   <Text style={styles.inputLabel}>VEHICLE MODEL</Text>
                   {(() => {
@@ -1158,8 +1162,8 @@ function MotoKeeperApp() {
                           return (
                             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginBottom: 10}}>
                                 {models.map(mdl => (
-                                   <TouchableOpacity key={mdl} onPress={() => setNewModel(mdl)} style={{paddingHorizontal: 20, paddingVertical: 12, backgroundColor: newModel === mdl ? C.blueDark : C.white, borderRadius: 20, marginRight: 10, borderWidth: 1, borderColor: C.border}}>
-                                       <Text style={{fontWeight: '800', color: newModel === mdl ? C.white : C.textSub}}>{mdl}</Text>
+                                   <TouchableOpacity key={mdl} onPress={() => setNewModel(mdl)} style={{paddingHorizontal: 20, paddingVertical: 12, backgroundColor: newModel === mdl ? C.bluePrimary : (isDarkMode ? 'rgba(255,255,255,0.05)' : C.white), borderRadius: 20, marginRight: 10, borderWidth: 1, borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : C.border}}>
+                                       <Text style={{fontWeight: '800', color: newModel === mdl ? C.white : (isDarkMode ? C.white : C.textSub)}}>{mdl}</Text>
                                    </TouchableOpacity>
                                 ))}
                             </ScrollView>
@@ -1167,13 +1171,13 @@ function MotoKeeperApp() {
                       }
                       return null;
                   })()}
-                  <TextInput style={styles.inputField} placeholder="Enter Model / Variant manually..." value={newModel} onChangeText={setNewModel} />
+                  <TextInput style={[styles.inputField, {color: isDarkMode ? C.white : C.blueDark}]} placeholder="Enter Model / Variant manually..." placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.2)' : C.textSub} value={newModel} onChangeText={setNewModel} />
 
                   <Text style={styles.inputLabel}>REGISTRATION NUMBER</Text>
-                  <TextInput style={styles.inputField} placeholder="MH-12-XX-1234" value={newVin} onChangeText={setNewVin} autoCapitalize="characters" />
+                  <TextInput style={[styles.inputField, {color: isDarkMode ? C.white : C.blueDark}]} placeholder="MH-12-XX-1234" placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.2)' : C.textSub} value={newVin} onChangeText={setNewVin} autoCapitalize="characters" />
 
                   <Text style={styles.inputLabel}>CURRENT ODOMETER (KM)</Text>
-                  <TextInput style={styles.inputField} placeholder="12500" keyboardType="numeric" value={newOdo} onChangeText={setNewOdo} />
+                  <TextInput style={[styles.inputField, {color: isDarkMode ? C.white : C.blueDark}]} placeholder="12500" placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.2)' : C.textSub} keyboardType="numeric" value={newOdo} onChangeText={setNewOdo} />
 
                   <Text style={styles.inputLabel}>IDENTIFIER COLOR</Text>
                   <View style={{flexDirection: 'row', justifyContent: 'space-between', marginTop: 10}}>
@@ -1188,47 +1192,47 @@ function MotoKeeperApp() {
         {/* VEHICLE PICKERS FOR LOGGING */}
         <Modal visible={overlay === 'VEHICLE_PICKER'} animationType="fade" transparent={true} onRequestClose={() => setOverlay(null)}>
            <View style={{flex: 1, backgroundColor: 'rgba(11, 17, 32, 0.7)', justifyContent: 'flex-end'}}>
-             <View style={styles.sheetContainer}>
-                <Text style={styles.sheetTitle}>Select Target Vehicle</Text>
+             <View style={[styles.sheetContainer, {backgroundColor: isDarkMode ? '#1C1C1E' : C.white}]}>
+                <Text style={[styles.sheetTitle, {color: isDarkMode ? C.white : C.blueDark}]}>Select Target Vehicle</Text>
                 {vehicles.map((v) => (
-                  <TouchableOpacity key={v.id} style={styles.sheetCard} onPress={() => { setActiveVehicleId(v.id); setOverlay('CAMERA'); }}>
-                     <View style={styles.sheetIconWrap}><CarFront color={C.blueDark} size={22} /></View>
+                  <TouchableOpacity key={v.id} style={[styles.sheetCard, {backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : C.grayLight}]} onPress={() => { setActiveVehicleId(v.id); setOverlay('CAMERA'); }}>
+                     <View style={[styles.sheetIconWrap, {backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : C.white}]}><CarFront color={isDarkMode ? C.white : C.blueDark} size={22} /></View>
                      <View style={{flex: 1, marginLeft: 15}}>
-                        <Text style={{fontWeight: '800', fontSize: 17, color: C.blueDark, letterSpacing: -0.2}}>{v.make} {v.model}</Text>
-                        <Text style={{color: C.textSub, fontSize: 13, fontWeight: '600', marginTop: 2}}>{v.registrationNo}</Text>
+                        <Text style={{fontWeight: '800', fontSize: 17, color: isDarkMode ? C.white : C.blueDark, letterSpacing: -0.2}}>{v.make} {v.model}</Text>
+                        <Text style={{color: isDarkMode ? 'rgba(255,255,255,0.4)' : C.textSub, fontSize: 13, fontWeight: '600', marginTop: 2}}>{v.registrationNo}</Text>
                      </View>
-                     <ChevronRight color={C.border} size={24} />
+                     <ChevronRight color={isDarkMode ? 'rgba(255,255,255,0.2)' : C.border} size={24} />
                   </TouchableOpacity>
                 ))}
-                <TouchableOpacity style={styles.btnActionSecondary} onPress={() => setOverlay(null)}><Text style={{fontWeight: '800', fontSize: 16, color: C.blueDark}}>Cancel Scan</Text></TouchableOpacity>
+                <TouchableOpacity style={[styles.btnActionSecondary, {backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : C.grayLight}]} onPress={() => setOverlay(null)}><Text style={{fontWeight: '800', fontSize: 16, color: isDarkMode ? C.white : C.blueDark}}>Cancel Scan</Text></TouchableOpacity>
              </View>
            </View>
         </Modal>
 
         <Modal visible={overlay === 'VEHICLE_PICKER_MANUAL'} animationType="fade" transparent={true} onRequestClose={() => setOverlay(null)}>
            <View style={{flex: 1, backgroundColor: 'rgba(11, 17, 32, 0.7)', justifyContent: 'flex-end'}}>
-             <View style={styles.sheetContainer}>
-                <Text style={styles.sheetTitle}>Assign Manual Log</Text>
+             <View style={[styles.sheetContainer, {backgroundColor: isDarkMode ? '#1C1C1E' : C.white}]}>
+                <Text style={[styles.sheetTitle, {color: isDarkMode ? C.white : C.blueDark}]}>Assign Manual Log</Text>
                 {vehicles.map((v) => (
-                  <TouchableOpacity key={v.id} style={styles.sheetCard} onPress={() => { setActiveVehicleId(v.id); setOverlay('MANUAL_ENTRY'); }}>
-                     <View style={styles.sheetIconWrap}><CarFront color={C.blueDark} size={22} /></View>
+                  <TouchableOpacity key={v.id} style={[styles.sheetCard, {backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : C.grayLight}]} onPress={() => { setActiveVehicleId(v.id); setOverlay('MANUAL_ENTRY'); }}>
+                     <View style={[styles.sheetIconWrap, {backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : C.white}]}><CarFront color={isDarkMode ? C.white : C.blueDark} size={22} /></View>
                      <View style={{flex: 1, marginLeft: 15}}>
-                        <Text style={{fontWeight: '800', fontSize: 17, color: C.blueDark, letterSpacing: -0.2}}>{v.make} {v.model}</Text>
+                        <Text style={{fontWeight: '800', fontSize: 17, color: isDarkMode ? C.white : C.blueDark, letterSpacing: -0.2}}>{v.make} {v.model}</Text>
                      </View>
-                     <ChevronRight color={C.border} size={24} />
+                     <ChevronRight color={isDarkMode ? 'rgba(255,255,255,0.2)' : C.border} size={24} />
                   </TouchableOpacity>
                 ))}
-                <TouchableOpacity style={styles.btnActionSecondary} onPress={() => setOverlay(null)}><Text style={{fontWeight: '800', fontSize: 16, color: C.blueDark}}>Cancel Log</Text></TouchableOpacity>
+                <TouchableOpacity style={[styles.btnActionSecondary, isDarkMode && {backgroundColor: 'rgba(255,255,255,0.05)'}]} onPress={() => setOverlay(null)}><Text style={{fontWeight: '800', fontSize: 16, color: isDarkMode ? C.white : C.blueDark}}>Cancel Log</Text></TouchableOpacity>
              </View>
            </View>
         </Modal>
 
         {/* MANUAL ENTRY MODAL */}
         <Modal visible={overlay === 'MANUAL_ENTRY'} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setOverlay(null)}>
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{flex: 1, backgroundColor: C.bg}}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{flex: 1, backgroundColor: isDarkMode ? '#000' : C.bg}}>
               <View style={styles.modalHeader}>
-                <TouchableOpacity onPress={() => {setOverlay(null); setManualPhoto(null); setSelectedServices([]);}} style={{padding: 5}}><X size={26} color={C.blueDark} /></TouchableOpacity>
-                <Text style={{fontSize: 20, fontWeight: '900', color: C.blueDark, letterSpacing: -0.5}}>{manualForm.category} LOG</Text>
+                <TouchableOpacity onPress={() => {setOverlay(null); setManualPhoto(null); setSelectedServices([]);}} style={{padding: 5}}><X size={26} color={isDarkMode ? C.white : C.blueDark} /></TouchableOpacity>
+                <Text style={{fontSize: 20, fontWeight: '900', color: isDarkMode ? C.white : C.blueDark, letterSpacing: -0.5}}>{manualForm.category} LOG</Text>
                 <TouchableOpacity onPress={submitManualLog} disabled={loading} style={{padding: 5}}>
                    {loading ? <ActivityIndicator size="small" color={C.bluePrimary}/> : <Text style={{fontWeight: '900', color: C.white, backgroundColor: C.blueDark, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12}}>Save</Text>}
                 </TouchableOpacity>
@@ -1236,66 +1240,66 @@ function MotoKeeperApp() {
               <ScrollView contentContainerStyle={{padding: 24}}>
                  {manualForm.category === 'REPAIR' ? (
                     <View>
-                        <Text style={[styles.inputLabel, {marginTop: 0}]}>SERVICE DATE</Text>
-                        <TextInput style={[styles.inputField, {marginBottom: 25}]} value={manualForm.date} onChangeText={(v)=>setManualForm({...manualForm, date: v})} />
+                        <Text style={[styles.inputLabel, {marginTop: 0, color: isDarkMode ? 'rgba(255,255,255,0.4)' : C.textSub}]}>SERVICE DATE</Text>
+                        <TextInput style={[styles.inputField, isDarkMode && {backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.1)', color: '#FFF'}]} value={manualForm.date} onChangeText={(v)=>setManualForm({...manualForm, date: v})} />
                         
-                        <Text style={[styles.inputLabel, {marginTop: 0}]}>SERVICE TYPE</Text>
-                        <View style={{flexDirection: 'row', backgroundColor: C.grayLight, borderRadius: 16, padding: 4, marginBottom: 25}}>
+                        <Text style={[styles.inputLabel, {marginTop: 22, color: isDarkMode ? 'rgba(255,255,255,0.4)' : C.textSub}]}>SERVICE TYPE</Text>
+                        <View style={{flexDirection: 'row', backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : C.grayLight, borderRadius: 16, padding: 4, marginBottom: 25}}>
                             <TouchableOpacity style={{flex: 1, paddingVertical: 14, alignItems: 'center', backgroundColor: repairTab === 'REGULAR' ? C.blueDark : 'transparent', borderRadius: 12}} onPress={() => setRepairTab('REGULAR')}>
-                                <Text style={{fontWeight: '800', fontSize: 13, color: repairTab === 'REGULAR' ? C.white : C.textSub}}>Regular Service</Text>
+                                <Text style={{fontWeight: '800', fontSize: 13, color: repairTab === 'REGULAR' ? C.white : (isDarkMode ? 'rgba(255,255,255,0.6)' : C.textSub)}}>Regular Service</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={{flex: 1, paddingVertical: 14, alignItems: 'center', backgroundColor: repairTab === 'MISC' ? C.white : 'transparent', borderRadius: 12}} onPress={() => setRepairTab('MISC')}>
-                                <Text style={{fontWeight: '800', fontSize: 13, color: repairTab === 'MISC' ? C.blueDark : C.textSub}}>Miscellaneous</Text>
+                            <TouchableOpacity style={{flex: 1, paddingVertical: 14, alignItems: 'center', backgroundColor: repairTab === 'MISC' ? (isDarkMode ? '#333' : C.white) : 'transparent', borderRadius: 12}} onPress={() => setRepairTab('MISC')}>
+                                <Text style={{fontWeight: '800', fontSize: 13, color: repairTab === 'MISC' ? (isDarkMode ? C.white : C.blueDark) : (isDarkMode ? 'rgba(255,255,255,0.6)' : C.textSub)}}>Miscellaneous</Text>
                             </TouchableOpacity>
                         </View>
 
-                        <Text style={[styles.inputLabel, {marginTop: 0}]}>WHAT WAS SERVICED?</Text>
+                        <Text style={[styles.inputLabel, {color: isDarkMode ? 'rgba(255,255,255,0.4)' : C.textSub}]}>WHAT WAS SERVICED?</Text>
                         <View style={{flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 25}}>
                            {SERVICE_GRID[repairTab].map(srv => {
                               const isSelected = selectedServices.includes(srv.id);
                               const IconComp = srv.icon;
                               return (
-                                 <TouchableOpacity key={srv.id} onPress={() => toggleService(srv.id)} style={{width: '31%', backgroundColor: isSelected ? C.blueLight : C.white, borderWidth: 1, borderColor: isSelected ? C.blueDark : C.border, borderRadius: 16, paddingVertical: 18, alignItems: 'center', marginBottom: 12, position: 'relative'}}>
+                                 <TouchableOpacity key={srv.id} onPress={() => toggleService(srv.id)} style={{width: '31%', backgroundColor: isSelected ? C.blueLight : (isDarkMode ? 'rgba(255,255,255,0.03)' : C.white), borderWidth: 1, borderColor: isSelected ? C.blueDark : (isDarkMode ? 'rgba(255,255,255,0.1)' : C.border), borderRadius: 16, paddingVertical: 18, alignItems: 'center', marginBottom: 12, position: 'relative'}}>
                                     {isSelected && <View style={{position: 'absolute', top: -5, right: -5, backgroundColor: C.blueDark, borderRadius: 10, width: 22, height: 22, justifyContent: 'center', alignItems: 'center'}}><Check color={C.white} size={14} strokeWidth={3} /></View>}
-                                    <IconComp color={isSelected ? C.bluePrimary : C.textSub} size={28} style={{marginBottom: 10}} strokeWidth={1.5}/>
-                                    <Text style={{fontWeight: '800', fontSize: 11, textAlign: 'center', color: isSelected ? C.blueDark : C.textSub}}>{srv.id}</Text>
+                                    <IconComp color={isSelected ? C.bluePrimary : (isDarkMode ? 'rgba(255,255,255,0.4)' : C.textSub)} size={28} style={{marginBottom: 10}} strokeWidth={1.5}/>
+                                    <Text style={{fontWeight: '800', fontSize: 11, textAlign: 'center', color: isSelected ? C.blueDark : (isDarkMode ? 'rgba(255,255,255,0.6)' : C.textSub)}}>{srv.id}</Text>
                                  </TouchableOpacity>
                               )
                            })}
                         </View>
 
-                        <Text style={[styles.inputLabel, {marginTop: 0}]}>SERVICE COST (₹) optional</Text>
-                        <TextInput style={[styles.inputField, {marginBottom: 25, fontSize: 22, fontWeight: '900', color: C.blueDark}]} placeholder="₹ 0" keyboardType="numeric" value={manualForm.amount} onChangeText={(v)=>setManualForm({...manualForm, amount: v})} />
+                        <Text style={[styles.inputLabel, {color: isDarkMode ? 'rgba(255,255,255,0.4)' : C.textSub}]}>SERVICE COST (₹) optional</Text>
+                        <TextInput style={[styles.inputField, {fontSize: 22, fontWeight: '900'}, isDarkMode && {backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.1)', color: '#FFF'}]} placeholder="₹ 0" placeholderTextColor="rgba(255,255,255,0.2)" keyboardType="numeric" value={manualForm.amount} onChangeText={(v)=>setManualForm({...manualForm, amount: v})} />
 
-                        <Text style={[styles.inputLabel, {marginTop: 0}]}>NOTES (optional)</Text>
-                        <TextInput style={styles.inputField} placeholder="e.g. Full synthetic 5W-30, replaced brake pads" value={manualForm.merchant} onChangeText={(v)=>setManualForm({...manualForm, merchant: v})} multiline />
+                        <Text style={[styles.inputLabel, {color: isDarkMode ? 'rgba(255,255,255,0.4)' : C.textSub}]}>NOTES (optional)</Text>
+                        <TextInput style={[styles.inputField, isDarkMode && {backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.1)', color: '#FFF'}]} placeholder="e.g. Full synthetic 5W-30, replaced brake pads" placeholderTextColor="rgba(255,255,255,0.2)" value={manualForm.merchant} onChangeText={(v)=>setManualForm({...manualForm, merchant: v})} multiline />
                     </View>
                  ) : (
                     <View>
                         <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
                            <View style={{flex: 1, marginRight: 10}}>
-                              <Text style={[styles.inputLabel, {marginTop: 0}]}>AMOUNT (₹)</Text>
-                              <TextInput style={[styles.inputField, {fontSize: 24, fontWeight: '900', color: C.blueDark}]} placeholder="0" keyboardType="numeric" value={manualForm.amount} onChangeText={(v)=>setManualForm({...manualForm, amount: v})} />
+                              <Text style={[styles.inputLabel, {marginTop: 0, color: isDarkMode ? 'rgba(255,255,255,0.4)' : C.textSub}]}>AMOUNT (₹)</Text>
+                              <TextInput style={[styles.inputField, {fontSize: 24, fontWeight: '900'}, isDarkMode && {backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.1)', color: '#FFF'}]} placeholder="0" placeholderTextColor="rgba(255,255,255,0.2)" keyboardType="numeric" value={manualForm.amount} onChangeText={(v)=>setManualForm({...manualForm, amount: v})} />
                            </View>
                            <View style={{flex: 1, marginLeft: 10}}>
-                              <Text style={[styles.inputLabel, {marginTop: 0}]}>DATE</Text>
-                              <TextInput style={[styles.inputField, {fontSize: 18}]} value={manualForm.date} onChangeText={(v)=>setManualForm({...manualForm, date: v})} />
+                              <Text style={[styles.inputLabel, {marginTop: 0, color: isDarkMode ? 'rgba(255,255,255,0.4)' : C.textSub}]}>DATE</Text>
+                              <TextInput style={[styles.inputField, {fontSize: 18}, isDarkMode && {backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.1)', color: '#FFF'}]} value={manualForm.date} onChangeText={(v)=>setManualForm({...manualForm, date: v})} />
                            </View>
                         </View>
 
-                        <Text style={styles.inputLabel}>VENDOR NAME</Text>
-                        <TextInput style={styles.inputField} placeholder="e.g. Shell Petrol Pump" value={manualForm.merchant} onChangeText={(v)=>setManualForm({...manualForm, merchant: v})} />
+                        <Text style={[styles.inputLabel, {color: isDarkMode ? 'rgba(255,255,255,0.4)' : C.textSub}]}>VENDOR NAME</Text>
+                        <TextInput style={[styles.inputField, isDarkMode && {backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.1)', color: '#FFF'}]} placeholder="e.g. Shell Petrol Pump" placeholderTextColor="rgba(255,255,255,0.2)" value={manualForm.merchant} onChangeText={(v)=>setManualForm({...manualForm, merchant: v})} />
 
-                        <Text style={styles.inputLabel}>CURRENT ODOMETER (KM) (OPTIONAL)</Text>
-                        <TextInput style={styles.inputField} placeholder="12550" keyboardType="numeric" value={manualForm.odometer} onChangeText={(v)=>setManualForm({...manualForm, odometer: v})} />
+                        <Text style={[styles.inputLabel, {color: isDarkMode ? 'rgba(255,255,255,0.4)' : C.textSub}]}>CURRENT ODOMETER (KM) (OPTIONAL)</Text>
+                        <TextInput style={[styles.inputField, isDarkMode && {backgroundColor: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.1)', color: '#FFF'}]} placeholder="12550" placeholderTextColor="rgba(255,255,255,0.2)" keyboardType="numeric" value={manualForm.odometer} onChangeText={(v)=>setManualForm({...manualForm, odometer: v})} />
 
-                        <Text style={[styles.inputLabel, {marginTop: 35}]}>ATTACH PHYSICAL RECEIPT</Text>
+                        <Text style={[styles.inputLabel, {marginTop: 35, color: isDarkMode ? 'rgba(255,255,255,0.4)' : C.textSub}]}>ATTACH PHYSICAL RECEIPT</Text>
                         {manualPhoto ? (
                            <Image source={{uri: `data:image/jpeg;base64,${manualPhoto}`}} style={{width: '100%', height: 200, borderRadius: 20, marginTop: 10}} />
                         ) : (
-                           <TouchableOpacity style={[styles.btnActionSecondary, {paddingVertical: 25, flexDirection: 'row', justifyContent: 'center', marginTop: 10}]} onPress={()=>setOverlay('MANUAL_CAMERA')}>
-                              <CameraIcon size={22} color={C.blueDark} strokeWidth={2.5} style={{marginRight: 10}}/>
-                              <Text style={{fontWeight: '800', color: C.blueDark, fontSize: 16}}>Open Camera Validation</Text>
+                           <TouchableOpacity style={[styles.btnActionSecondary, isDarkMode && {backgroundColor: 'rgba(255,255,255,0.05)'}, {paddingVertical: 25, flexDirection: 'row', justifyContent: 'center', marginTop: 10}]} onPress={()=>setOverlay('MANUAL_CAMERA')}>
+                              <CameraIcon size={22} color={isDarkMode ? '#FFF' : C.blueDark} strokeWidth={2.5} style={{marginRight: 10}}/>
+                              <Text style={{fontWeight: '800', color: isDarkMode ? '#FFF' : C.blueDark, fontSize: 16}}>Open Camera Validation</Text>
                            </TouchableOpacity>
                         )}
                     </View>
@@ -1322,7 +1326,7 @@ function MotoKeeperApp() {
 
         {/* SCAN RESULT AI INTERFACE */}
         <Modal visible={overlay === 'SCAN_RESULT'} animationType="slide">
-           <SafeAreaView style={{flex: 1, backgroundColor: C.bg}}>
+           <SafeAreaView style={{flex: 1, backgroundColor: isDarkMode ? '#000000' : C.bg}}>
              <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{flex: 1}}>
              {loading ? (
                  <View style={{flex:1, justifyContent: 'center', alignItems: 'center'}}>
@@ -1335,19 +1339,19 @@ function MotoKeeperApp() {
              ) : parsedData ? (
                  <ScrollView style={{padding: 24}} keyboardShouldPersistTaps="handled">
                     <Text style={[styles.headerHero, {fontSize: 32, alignSelf: 'center', marginVertical: 20, color: C.green}]}>Success ✓</Text>
-                    <View style={[styles.parsedCard, {backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : C.white, borderColor: isDarkMode ? 'rgba(255,255,255,0.05)' : C.border, borderWidth: 1}]}>
+                    <View style={[styles.parsedCard, {backgroundColor: isDarkMode ? '#1C1C1E' : C.white, borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : C.border, borderWidth: 1}]}>
                        <Text style={{fontSize: 24, fontWeight: '900', color: isDarkMode ? C.white : C.blueDark, letterSpacing: -0.5}}>{parsedData.merchant}</Text>
-                       <Text style={{color: isDarkMode ? 'rgba(255,255,255,0.4)' : C.textSub, marginBottom: 25, fontWeight: '600', marginTop: 4}}>{parsedData.date}</Text>
+                       <Text style={{color: isDarkMode ? 'rgba(255,255,255,0.6)' : C.textSub, marginBottom: 25, fontWeight: '600', marginTop: 4}}>{parsedData.date}</Text>
                        
                        {parsedData.line_items.map((li, idx) => (
                           <View key={idx} style={{flexDirection: 'row', justifyContent: 'space-between', marginVertical: 8}}>
-                             <Text style={{flex: 1, color: isDarkMode ? 'rgba(255,255,255,0.6)' : C.textSub, fontSize: 16, fontWeight: '500'}}>{li.description} {li.quantity ? `(Vol: ${li.quantity})` : ''}</Text>
+                             <Text style={{flex: 1, color: isDarkMode ? 'rgba(255,255,255,0.8)' : C.textSub, fontSize: 16, fontWeight: '500'}}>{li.description} {li.quantity ? `(Vol: ${li.quantity})` : ''}</Text>
                              <Text style={{fontWeight: '800', color: isDarkMode ? C.white : C.blueDark, fontSize: 16}}>₹{li.total.toLocaleString('en-IN')}</Text>
                           </View>
                        ))}
                        <View style={{height: 1, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : C.border, marginVertical: 25}} />
                        <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end'}}>
-                          <Text style={{fontWeight: '800', fontSize: 16, color: isDarkMode ? 'rgba(255,255,255,0.4)' : C.textSub, marginBottom: 4}}>TOTAL</Text>
+                          <Text style={{fontWeight: '800', fontSize: 16, color: isDarkMode ? 'rgba(255,255,255,0.7)' : C.textSub, marginBottom: 4}}>TOTAL</Text>
                           <Text style={{fontWeight: '900', fontSize: 36, color: C.bluePrimary, letterSpacing: -1.5}}>₹{parsedData.total_amount.toLocaleString('en-IN')}</Text>
                        </View>
                     </View>
@@ -1363,7 +1367,7 @@ function MotoKeeperApp() {
                  <View style={{flex: 1, padding: 0, backgroundColor: '#000'}}>
                     <Image style={{width: '100%', height: '70%', resizeMode: 'cover'}} source={{uri: `data:image/jpeg;base64,${photoBase64}`}} />
                     <View style={{padding: 30, justifyContent: 'space-between', flexDirection: 'row'}}>
-                       <TouchableOpacity style={[styles.btnActionSecondary, {flex: 1, marginRight: 10}]} onPress={() => setOverlay('CAMERA')}><Text style={{fontWeight: '800', fontSize: 16, color: C.blueDark}}>Retake</Text></TouchableOpacity>
+                       <TouchableOpacity style={[styles.btnActionSecondary, {flex: 1, marginRight: 10}, isDarkMode && {backgroundColor: 'rgba(255,255,255,0.05)'}]} onPress={() => setOverlay('CAMERA')}><Text style={{fontWeight: '800', fontSize: 16, color: isDarkMode ? C.white : C.blueDark}}>Retake</Text></TouchableOpacity>
                        <TouchableOpacity style={[styles.btnActionPrimary, {flex: 1.5, marginLeft: 10}]} onPress={uploadAndScan}><Text style={{color: '#FFF', fontWeight: '800', fontSize: 16}}>Analyze Impact</Text></TouchableOpacity>
                     </View>
                  </View>

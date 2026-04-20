@@ -65,6 +65,9 @@ export const scanBill = async (req: Request, res: Response) => {
       data: { ...parsedData, dbId: newExpense.id },
     });
   } catch (error: any) {
+    if (error.response?.status === 429) {
+       return res.status(429).json({ error: 'AI OCR Quota Exhausted. Please retry later or upgrade to a paid tier.' });
+    }
     console.error('OCR Error:', error?.response?.data || error);
     return res.status(500).json({ error: 'Failed to process bill or vault database.' });
   }
