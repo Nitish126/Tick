@@ -10,7 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Home, Car, DollarSign, Wrench, AlertTriangle, FileText, X, Edit2, Droplet, Filter, Wind, Thermometer, Disc, RefreshCcw, Zap, BatteryCharging, CloudRain, Check, CarFront, Activity, ShieldCheck, ChevronRight, Fuel, Wrench as WrenchIcon, Camera as CameraIcon, MapPin, Calendar, Clock, Users, User, ArrowRight, Trash2, Menu, Plus, LogOut, TriangleAlert } from 'lucide-react-native';
 
 const GATEWAY_URL = 'https://tick-production.up.railway.app';
-const APP_VERSION = 'v1.0.0-production';
+const APP_VERSION = 'v1.0.2-production';
 const { width } = Dimensions.get('window');
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -293,6 +293,12 @@ function MotoKeeperApp() {
      setGroupedHistory(groupDataByDate(filtered));
   }, [history, filterV, filterC]);
 
+  useEffect(() => {
+    if (vehicles.length > 0) {
+      loadFleetIntelligence();
+    }
+  }, [vehicles, history]);
+
   const loadFleetIntelligence = async () => {
     try {
       const docRes = await axios.get(`${GATEWAY_URL}/api/documents/fleet/all`, { headers: { 'x-user-id': myUserId }});
@@ -426,7 +432,7 @@ function MotoKeeperApp() {
       fetchData(); 
       setOverlay(null);
     } catch (e) { 
-       const errorMsg = e.response?.data?.error || "Could not save vehicle.";
+       const errorMsg = e.response?.data?.error || e.message || "Could not save vehicle.";
        Alert.alert("Error", errorMsg); 
     } 
     finally { setLoading(false); }
@@ -807,9 +813,9 @@ function MotoKeeperApp() {
                    <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 35, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : C.white, padding: 18, borderRadius: 16, borderWidth: 1, borderColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}}>
                        <View style={{flexDirection: 'row', alignItems: 'center'}}>
                           <Activity color={isDarkMode ? C.bluePrimary : '#4ADE80'} size={22} style={{marginRight: 15}} />
-                          <View>
-                             <Text style={{color: isDarkMode ? C.white : C.blueDark, fontWeight: '800', fontSize: 16}}>Midnight Immersive</Text>
-                             <Text style={{color: 'rgba(255,255,255,0.3)', fontSize: 11, fontWeight: '700'}}>Showroom Dark Mode</Text>
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ color: isDarkMode ? '#FFFFFF' : '#1E293B', fontWeight: '600' }}>Midnight Immersive</Text>
+                            <Text style={{ color: isDarkMode ? 'rgba(255,255,255,0.4)' : '#64748B', fontSize: 12 }}>Optimized for OLED & low light</Text>
                           </View>
                        </View>
                        <Switch value={isDarkMode} onValueChange={setIsDarkMode} trackColor={{true: C.bluePrimary}} />
@@ -818,25 +824,41 @@ function MotoKeeperApp() {
                    <Text style={{color: isDarkMode ? 'rgba(255,255,255,0.4)' : C.textSub, fontSize: 11, fontWeight: '900', letterSpacing: 1.5, marginBottom: 15}}>FLEET TELEMETRY</Text>
                   <View style={{gap: 15, marginBottom: 40}}>
                      {fleetHealth.map((vh, idx) => (
-                        <View key={idx} style={{backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : C.white, borderRadius: 24, padding: 20, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}}>
-                            <View style={{width: 54, height: 54, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.05)', justifyContent: 'center', alignItems: 'center', marginRight: 16}}>
+                        <View key={vh.id || idx} style={{
+                          backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : '#FFFFFF', 
+                          borderRadius: 24, 
+                          padding: 20, 
+                          flexDirection: 'row', 
+                          alignItems: 'center', 
+                          borderWidth: 1, 
+                          borderColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#E2E8F0'
+                        }}>
+                            <View style={{
+                              width: 54, 
+                              height: 54, 
+                              borderRadius: 16, 
+                              backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#F1F5F9', 
+                              justifyContent: 'center', 
+                              alignItems: 'center', 
+                              marginRight: 16
+                            }}>
                                {(() => {
                                   const asset = getVehicleAsset(vh.make, vh.model, isDarkMode);
                                   if (asset.type === 'IMAGE') return <Image source={asset.source} style={{width: 40, height: 30}} resizeMode="contain" />;
                                   if (asset.type === 'LOGO') return <Image source={asset.source} style={{width: 30, height: 30}} resizeMode="contain" />;
-                                  return <Car color={C.white} size={24} />;
+                                  return <Car color={isDarkMode ? '#FFFFFF' : '#1E293B'} size={24} />;
                                })()}
                             </View>
                             <View style={{flex: 1}}>
-                               <Text style={{color: isDarkMode ? C.white : C.blueDark, fontWeight: '800', fontSize: 16}}>{vh.make} {vh.model}</Text>
+                               <Text style={{color: isDarkMode ? '#FFFFFF' : '#1E293B', fontWeight: '800', fontSize: 16}}>{vh.make} {vh.model}</Text>
                                <View style={{flexDirection: 'row', gap: 10, marginTop: 4}}>
                                   {(() => {
-                                     const score = vh.score || 100;
+                                     const score = Math.round(vh.score || 100);
                                      const color = score >= 90 ? '#4ADE80' : (score >= 80 ? '#FBBF24' : '#F87171');
                                      return (
                                         <>
-                                           <Text style={{color, fontSize: 11, fontWeight: '900'}}>{vh.healthStatus || 'OPTIMAL'}</Text>
-                                           <Text style={{color: isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.3)', fontSize: 11, fontWeight: '900'}}>• {Math.round(score)}% LIFE</Text>
+                                           <Text style={{color, fontSize: 11, fontWeight: '900'}}>{vh.score >= 90 ? 'OPTIMAL' : (vh.score >= 70 ? 'STABLE' : 'ACTION REQUIRED')}</Text>
+                                           <Text style={{color: isDarkMode ? 'rgba(255,255,255,0.4)' : '#64748B', fontSize: 11, fontWeight: '900'}}>• {score}% HEALTH</Text>
                                         </>
                                      );
                                   })()}

@@ -38,7 +38,19 @@ export const createVehicle = async (req: Request, res: Response) => {
     res.status(201).json({ success: true, data: newVehicle });
   } catch (error: any) {
     console.error('Create Vehicle Error:', error);
-    res.status(500).json({ success: false, error: error.message || 'Failed to create vehicle' });
+    
+    // Explicitly handle Prisma Unique Constraint errors
+    if (error.code === 'P2002') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Registration Number is already registered in MotoKeeper.' 
+      });
+    }
+
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Failed to create vehicle' 
+    });
   }
 };
 
