@@ -8,7 +8,7 @@
     "dev": "nodemon src/index.ts",
     "build": "tsc",
     "postinstall": "prisma generate",
-    "build:railway": "tsc && prisma migrate deploy"
+    "build:railway": "tsc"
   },
   "dependencies": {
     "@prisma/client": "^5.0.0",
