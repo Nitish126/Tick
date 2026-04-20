@@ -909,21 +909,21 @@ function MotoKeeperApp() {
                          <Switch value={reminders.cabin} onValueChange={v => setReminders({...reminders, cabin: v})} trackColor={{true: C.bluePrimary}} />
                       </View>
 
-                       <View style={{height: 1, backgroundColor: 'rgba(255,255,255,0.05)', marginVertical: 10}} />
+                       <View style={{height: 1, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', marginVertical: 10}} />
                        <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 15}}>
                           <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                             <Zap color={pushEnabled ? '#4ADE80' : 'rgba(255,255,255,0.2)'} size={20} style={{marginRight: 12}} />
-                             <Text style={{color: C.white, fontWeight: '700', fontSize: 16}}>Push System Alerts</Text>
+                             <Zap color={pushEnabled ? '#4ADE80' : (isDarkMode ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)')} size={20} style={{marginRight: 12}} />
+                             <Text style={{color: isDarkMode ? C.white : C.blueDark, fontWeight: '700', fontSize: 16}}>Push System Alerts</Text>
                           </View>
                           <Switch value={pushEnabled} onValueChange={v => { if(v) prepareNotifications(); else setPushEnabled(false); }} trackColor={{true: '#4ADE80'}} />
                        </View>
 
-                      <View style={{marginTop: 10, paddingTop: 25, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)'}}>
-                         <Text style={{color: 'rgba(255,255,255,0.5)', fontWeight: '800', fontSize: 11, letterSpacing: 1.0, marginBottom: 12}}>BATTERY WARRANTY EXPIRY</Text>
+                      <View style={{marginTop: 10, paddingTop: 25, borderTopWidth: 1, borderTopColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}}>
+                         <Text style={{color: isDarkMode ? 'rgba(255,255,255,0.5)' : C.textSub, fontWeight: '800', fontSize: 11, letterSpacing: 1.0, marginBottom: 12}}>BATTERY WARRANTY EXPIRY</Text>
                          <TextInput 
-                           style={{backgroundColor: 'rgba(255,255,255,0.03)', color: C.white, padding: 18, borderRadius: 16, fontSize: 15, fontWeight: '700', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)'}} 
+                           style={{backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)', color: isDarkMode ? C.white : C.blueDark, padding: 18, borderRadius: 16, fontSize: 15, fontWeight: '700', borderWidth: 1, borderColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}} 
                            placeholder="YYYY-MM-DD" 
-                           placeholderTextColor="rgba(255,255,255,0.2)" 
+                           placeholderTextColor={isDarkMode ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.3)"} 
                            value={batteryExp} 
                            onChangeText={setBatteryExp} 
                          />
@@ -1212,13 +1212,13 @@ function MotoKeeperApp() {
                       }
                       return null;
                   })()}
-                  <TextInput style={[styles.inputField, {color: isDarkMode ? C.white : C.blueDark}]} placeholder="Enter Model / Variant manually..." placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.2)' : C.textSub} value={newModel} onChangeText={setNewModel} />
+                  <TextInput style={[styles.inputField, {color: isDarkMode ? C.white : C.blueDark, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : C.white}]} placeholder="Enter Model / Variant manually..." placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.2)' : C.textSub} value={newModel} onChangeText={setNewModel} />
 
                   <Text style={styles.inputLabel}>REGISTRATION NUMBER</Text>
-                  <TextInput style={[styles.inputField, {color: isDarkMode ? C.white : C.blueDark}]} placeholder="MH-12-XX-1234" placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.2)' : C.textSub} value={newVin} onChangeText={setNewVin} autoCapitalize="characters" />
+                  <TextInput style={[styles.inputField, {color: isDarkMode ? C.white : C.blueDark, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : C.white}]} placeholder="MH-12-XX-1234" placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.2)' : C.textSub} value={newVin} onChangeText={setNewVin} autoCapitalize="characters" />
 
                   <Text style={styles.inputLabel}>CURRENT ODOMETER (KM)</Text>
-                  <TextInput style={[styles.inputField, {color: isDarkMode ? C.white : C.blueDark}]} placeholder="12500" placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.2)' : C.textSub} keyboardType="numeric" value={newOdo} onChangeText={setNewOdo} />
+                  <TextInput style={[styles.inputField, {color: isDarkMode ? C.white : C.blueDark, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : C.white}]} placeholder="12500" placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.2)' : C.textSub} keyboardType="numeric" value={newOdo} onChangeText={setNewOdo} />
 
                   <Text style={styles.inputLabel}>IDENTIFIER COLOR</Text>
                   <View style={{flexDirection: 'row', justifyContent: 'space-between', marginTop: 10, flexWrap: 'wrap', gap: 10}}>
