@@ -9,6 +9,7 @@ import vehicleRoutes from './routes/vehicleRoutes';
 import documentRoutes from './routes/documentRoutes';
 import path from 'path';
 import fs from 'fs';
+import { exec } from 'child_process';
 import { prisma } from './prisma';
 
 const app = express();
