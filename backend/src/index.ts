@@ -47,34 +47,31 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   res.status(500).json({ success: false, error: 'Internal Server Error', details: err.message });
 });
 
-// SELF-HEALING STARTUP
-async function startServer() {
-  console.log('Connecting to database...');
-  let retries = 5;
+// IMMEDIATE LISTENING (To prevent Railway 502 timeouts)
+app.listen(PORT, () => {
+  console.log(`v1.0.4 Server immediately listening on port ${PORT}`);
+});
+
+// ASYNC DB CONNECTION
+async function connectToDatabase() {
+  console.log('Connecting to database in background...');
+  let retries = 10;
   while (retries > 0) {
     try {
       await prisma.$connect();
       console.log('Successfully connected to database.');
-      break;
+      return;
     } catch (err) {
       retries -= 1;
       console.error(`Database connection failed. Retries left: ${retries}`, err);
-      if (retries === 0) {
-        console.error('COULD NOT CONNECT TO DATABASE. SHUTTING DOWN.');
-        process.exit(1);
-      }
-      await new Promise(res => setTimeout(res, 2000));
+      await new Promise(res => setTimeout(res, 5000));
     }
   }
-
-  app.listen(PORT, () => {
-    console.log(`v1.0.4 Server running on http://localhost:${PORT}`);
-  });
+  console.error('CRITICAL: FAILED TO CONNECT TO DATABASE AFTER MULTIPLE RETRIES.');
 }
 
-startServer().catch(err => {
-  console.error('FAILED TO START APP:', err);
-  process.exit(1);
+connectToDatabase().catch(err => {
+  console.error('BACKGROUND DB CONNECTION ERROR:', err);
 });
 
 // Panic handlers
