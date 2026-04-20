@@ -166,10 +166,19 @@ function MotoKeeperApp() {
 
   const [newBrand, setNewBrand] = useState("Kia");
   const [newModel, setNewModel] = useState("Seltos");
-  const [newColor, setNewColor] = useState("#0B1120");
+  const [newColor, setNewColor] = useState("#007AFF");
   const [newOdo, setNewOdo] = useState("0");
   const [newVin, setNewVin] = useState("DL-01-XXXX");
   const [editingVehicleId, setEditingVehicleId] = useState(null);
+
+  const resetVehicleForm = () => {
+     setNewBrand("Kia");
+     setNewModel("");
+     setNewColor("#007AFF");
+     setNewOdo("");
+     setNewVin("");
+     setEditingVehicleId(null);
+  };
 
   const switchTab = (tab) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -431,6 +440,7 @@ function MotoKeeperApp() {
          await axios.post(`${GATEWAY_URL}/api/vehicles`, { make: newBrand, model: newModel, color: newColor, odometer: newOdo, registrationNo: newVin });
       }
       fetchData(); 
+      resetVehicleForm();
       setOverlay(null);
     } catch (e) { 
        const errorMsg = e.response?.data?.error || e.message || "Could not save vehicle.";
@@ -811,15 +821,15 @@ function MotoKeeperApp() {
 
                   {/* FLEET HEALTH ANALYTICS */}
                    {/* COMMANDS SETTINGS */}
-                   <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 35, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : C.white, padding: 18, borderRadius: 16, borderWidth: 1, borderColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}}>
-                       <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                          <Activity color={isDarkMode ? C.bluePrimary : '#4ADE80'} size={22} style={{marginRight: 15}} />
+                   <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 35, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : C.white, padding: 16, borderRadius: 20, borderWidth: 1, borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}}>
+                       <View style={{flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 10}}>
+                          <Zap color={isDarkMode ? C.bluePrimary : '#007AFF'} size={24} style={{marginRight: 15}} />
                           <View style={{ flex: 1 }}>
-                            <Text style={{ color: isDarkMode ? '#FFFFFF' : '#1E293B', fontWeight: '600' }}>Midnight Immersive</Text>
-                            <Text style={{ color: isDarkMode ? 'rgba(255,255,255,0.4)' : '#64748B', fontSize: 12 }}>Optimized for OLED & low light</Text>
+                            <Text style={{ color: isDarkMode ? '#FFFFFF' : '#1E293B', fontWeight: '800', fontSize: 16 }}>Midnight Immersive</Text>
+                            <Text style={{ color: isDarkMode ? 'rgba(255,255,255,0.4)' : '#64748B', fontSize: 12, fontWeight: '600' }}>Deep OLED Dark Mode</Text>
                           </View>
                        </View>
-                       <Switch value={isDarkMode} onValueChange={setIsDarkMode} trackColor={{true: C.bluePrimary}} />
+                       <Switch value={isDarkMode} onValueChange={setIsDarkMode} trackColor={{true: '#007AFF'}} />
                    </View>
 
                    <Text style={{color: isDarkMode ? 'rgba(255,255,255,0.4)' : C.textSub, fontSize: 11, fontWeight: '900', letterSpacing: 1.5, marginBottom: 15}}>FLEET TELEMETRY</Text>
@@ -874,18 +884,22 @@ function MotoKeeperApp() {
                   <Text style={{color: isDarkMode ? 'rgba(255,255,255,0.4)' : C.textSub, fontSize: 11, fontWeight: '900', letterSpacing: 1.5, marginBottom: 15}}>SMART MAINTENANCE</Text>
                   <View style={{backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : C.white, borderRadius: 28, padding: 25, borderWidth: 1, borderColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}}>
                       <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 25}}>
-                         <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                            <Droplet color={C.bluePrimary} size={20} style={{marginRight: 12}} />
+                         <View style={{flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 10}}>
+                            <View style={{width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(52, 199, 89, 0.1)', justifyContent: 'center', alignItems: 'center', marginRight: 12}}>
+                               <Droplet color="#34C759" size={18} />
+                            </View>
                             <Text style={{color: isDarkMode ? C.white : C.blueDark, fontWeight: '700', fontSize: 16}}>Wiper Fluid (30d)</Text>
                          </View>
-                         <Switch value={reminders.wiper} onValueChange={v => setReminders({...reminders, wiper: v})} trackColor={{true: C.bluePrimary}} />
+                         <Switch value={reminders.wiper} onValueChange={v => setReminders({...reminders, wiper: v})} trackColor={{true: '#34C759'}} />
                       </View>
                       <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 25}}>
-                         <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                            <Wind color={C.bluePrimary} size={20} style={{marginRight: 12}} />
+                         <View style={{flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 10}}>
+                            <View style={{width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(0, 122, 255, 0.1)', justifyContent: 'center', alignItems: 'center', marginRight: 12}}>
+                               <Wind color="#007AFF" size={18} />
+                            </View>
                             <Text style={{color: isDarkMode ? C.white : C.blueDark, fontWeight: '700', fontSize: 16}}>Air Pressure (15d)</Text>
                          </View>
-                         <Switch value={reminders.spare} onValueChange={v => setReminders({...reminders, spare: v})} trackColor={{true: C.bluePrimary}} />
+                         <Switch value={reminders.spare} onValueChange={v => setReminders({...reminders, spare: v})} trackColor={{true: '#007AFF'}} />
                       </View>
                       <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 25}}>
                          <View style={{flexDirection: 'row', alignItems: 'center'}}>
@@ -1207,9 +1221,9 @@ function MotoKeeperApp() {
                   <TextInput style={[styles.inputField, {color: isDarkMode ? C.white : C.blueDark}]} placeholder="12500" placeholderTextColor={isDarkMode ? 'rgba(255,255,255,0.2)' : C.textSub} keyboardType="numeric" value={newOdo} onChangeText={setNewOdo} />
 
                   <Text style={styles.inputLabel}>IDENTIFIER COLOR</Text>
-                  <View style={{flexDirection: 'row', justifyContent: 'space-between', marginTop: 10}}>
-                      {['#0B1120', '#DC2626', '#2563EB', '#16A34A', '#8B5CF6'].map(col => (
-                         <TouchableOpacity key={col} onPress={() => setNewColor(col)} style={{width: 48, height: 48, borderRadius: 24, backgroundColor: col, borderWidth: newColor === col ? 4 : 0, borderColor: C.border}} />
+                  <View style={{flexDirection: 'row', justifyContent: 'space-between', marginTop: 10, flexWrap: 'wrap', gap: 10}}>
+                      {['#FF3B30', '#FF9500', '#FFCC00', '#34C759', '#007AFF', '#AF52DE', '#8E8E93'].map(col => (
+                         <TouchableOpacity key={col} onPress={() => setNewColor(col)} style={{width: 44, height: 44, borderRadius: 22, backgroundColor: col, borderWidth: newColor === col ? 4 : 0, borderColor: isDarkMode ? '#FFF' : '#000'}} />
                       ))}
                   </View>
               </ScrollView>
@@ -1256,7 +1270,7 @@ function MotoKeeperApp() {
 
         {/* MANUAL ENTRY MODAL */}
         <Modal visible={overlay === 'MANUAL_ENTRY'} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setOverlay(null)}>
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{flex: 1, backgroundColor: isDarkMode ? '#000' : C.bg}}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{flex: 1, backgroundColor: isDarkMode ? '#000' : C.bg}} keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}>
               <View style={styles.modalHeader}>
                 <TouchableOpacity onPress={() => {setOverlay(null); setManualPhoto(null); setSelectedServices([]);}} style={{padding: 5}}><X size={26} color={isDarkMode ? C.white : C.blueDark} /></TouchableOpacity>
                 <Text style={{fontSize: 20, fontWeight: '900', color: isDarkMode ? C.white : C.blueDark, letterSpacing: -0.5}}>{manualForm.category} LOG</Text>
@@ -1264,7 +1278,7 @@ function MotoKeeperApp() {
                    {loading ? <ActivityIndicator size="small" color={C.bluePrimary}/> : <Text style={{fontWeight: '900', color: C.white, backgroundColor: C.blueDark, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12}}>Save</Text>}
                 </TouchableOpacity>
               </View>
-              <ScrollView contentContainerStyle={{padding: 24}}>
+              <ScrollView contentContainerStyle={{padding: 24, paddingBottom: 100}} keyboardShouldPersistTaps="handled">
                  {manualForm.category === 'REPAIR' ? (
                     <View>
                         <Text style={[styles.inputLabel, {marginTop: 0, color: isDarkMode ? 'rgba(255,255,255,0.4)' : C.textSub}]}>SERVICE DATE</Text>
@@ -1354,7 +1368,7 @@ function MotoKeeperApp() {
         {/* SCAN RESULT AI INTERFACE */}
         <Modal visible={overlay === 'SCAN_RESULT'} animationType="slide">
            <SafeAreaView style={{flex: 1, backgroundColor: isDarkMode ? '#000000' : C.bg}}>
-             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{flex: 1}}>
+             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{flex: 1}} keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}>
              {loading ? (
                  <View style={{flex:1, justifyContent: 'center', alignItems: 'center'}}>
                     <View style={{width: 80, height: 80, backgroundColor: C.white, borderRadius: 40, justifyContent: 'center', alignItems: 'center', shadowColor: C.bluePrimary, shadowOpacity: 0.3, shadowRadius: 20, marginBottom: 30}}>
