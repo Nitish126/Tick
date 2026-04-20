@@ -11,20 +11,27 @@ import { PrismaClient } from '@prisma/client';
 
 dotenv.config();
 
-const prisma = new PrismaClient();
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-// Resilience: uploads folder
-const uploadsDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
+const prisma = new PrismaClient();
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-app.use('/uploads', express.static(uploadsDir));
+
+// SAFE ASYNC INITIALIZATION
+const initFolders = () => {
+  try {
+    const uploadsDir = path.join(__dirname, '../uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    app.use('/uploads', express.static(uploadsDir));
+    console.log('Uploads directory ready.');
+  } catch (err) {
+    console.error('Warning: Could not initialize uploads directory', err);
+  }
+};
 
 // Routes
 app.use('/api/expenses', expenseRoutes);
@@ -50,6 +57,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 // IMMEDIATE LISTENING (To prevent Railway 502 timeouts)
 app.listen(PORT, () => {
   console.log(`v1.0.4 Server immediately listening on port ${PORT}`);
+  initFolders();
 });
 
 // ASYNC DB CONNECTION
