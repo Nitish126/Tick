@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../prisma';
 
-const prisma = new PrismaClient();
+// Simplified to use shared prisma instance
 
 async function ensureUser(headerId: any) {
   const resolvedId = (headerId as string) || 'test-user-id';

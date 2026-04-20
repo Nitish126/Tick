@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
 import axios from 'axios';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../prisma';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 
-const prisma = new PrismaClient();
+// Shared prisma instance
 const ENGINE_URL = process.env.ENGINE_URL || 'https://virtuous-rejoicing-production.up.railway.app';
 
 const saveBase64Image = (base64String: string) => {

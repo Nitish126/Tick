@@ -7,13 +7,13 @@ import vehicleRoutes from './routes/vehicleRoutes';
 import documentRoutes from './routes/documentRoutes';
 import path from 'path';
 import fs from 'fs';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from './prisma';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const prisma = new PrismaClient();
+// Singleton prisma from ./prisma used globally
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
