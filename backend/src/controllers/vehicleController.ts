@@ -1,23 +1,12 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { prisma } from '../prisma';
+import { AuthRequest } from '../middleware/authMiddleware';
 
-// Simplified to use shared prisma instance
-
-async function ensureUser(headerId: any) {
-  const resolvedId = (headerId as string) || 'test-user-id';
-  let user = await prisma.user.findFirst({ where: { id: resolvedId }});
-  if (!user) {
-    user = await prisma.user.create({
-      data: { id: resolvedId, email: `${resolvedId}@motokeeper.com`, name: `User ${resolvedId.substring(0,6)}`, role: 'USER' }
-    });
-  }
-  return user.id;
-}
-
-export const createVehicle = async (req: Request, res: Response) => {
+export const createVehicle = async (req: AuthRequest, res: Response) => {
   try {
     const { registrationNo, make, model, color, odometer, vin } = req.body;
-    const userId = await ensureUser(req.headers['x-user-id']);
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const userId = req.user.id;
 
     // Create standard Vehicle
     const newVehicle = await prisma.vehicle.create({
@@ -54,9 +43,10 @@ export const createVehicle = async (req: Request, res: Response) => {
   }
 };
 
-export const getMyVehicles = async (req: Request, res: Response) => {
+export const getMyVehicles = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = await ensureUser(req.headers['x-user-id']);
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const userId = req.user.id;
 
     const myAccessList = await prisma.userVehicleAccess.findMany({
       where: { userId },
@@ -136,7 +126,7 @@ export const getMyVehicles = async (req: Request, res: Response) => {
   }
 };
 
-export const addCollaborator = async (req: Request, res: Response) => {
+export const addCollaborator = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params; // vehicle id
     const { collaboratorId } = req.body;
@@ -144,7 +134,8 @@ export const addCollaborator = async (req: Request, res: Response) => {
     if (!collaboratorId) return res.status(400).json({ error: "Missing collaborator ID" });
     
     // Ensure collaborator exists
-    await ensureUser(collaboratorId);
+    const collabUser = await prisma.user.findUnique({ where: { id: collaboratorId } });
+    if (!collabUser) return res.status(404).json({ error: "Collaborator user not found" });
     
     // Check if link exists
     const existing = await prisma.userVehicleAccess.findUnique({
@@ -166,10 +157,11 @@ export const addCollaborator = async (req: Request, res: Response) => {
   }
 };
 
-export const getVehicleById = async (req: Request, res: Response) => {
+export const getVehicleById = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = await ensureUser(req.headers['x-user-id']);
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const userId = req.user.id;
 
     // Check user has access to it
     const access = await prisma.userVehicleAccess.findUnique({
@@ -193,10 +185,11 @@ export const getVehicleById = async (req: Request, res: Response) => {
   }
 };
 
-export const updateVehicle = async (req: Request, res: Response) => {
+export const updateVehicle = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = await ensureUser(req.headers['x-user-id']);
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const userId = req.user.id;
     const { make, model, color, odometer, registrationNo } = req.body;
 
     const access = await prisma.userVehicleAccess.findUnique({
@@ -220,10 +213,11 @@ export const updateVehicle = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteVehicle = async (req: Request, res: Response) => {
+export const deleteVehicle = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = await ensureUser(req.headers['x-user-id']);
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const userId = req.user.id;
 
     const access = await prisma.userVehicleAccess.findUnique({
       where: { userId_vehicleId: { userId, vehicleId: id } }

@@ -1,10 +1,11 @@
-import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { Response } from 'express';
+import { prisma } from '../prisma';
+import { AuthRequest } from '../middleware/authMiddleware';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 
-const prisma = new PrismaClient();
+
 
 const saveBase64Image = (base64String: string) => {
   if (!base64String) return null;
@@ -20,7 +21,7 @@ const saveBase64Image = (base64String: string) => {
   }
 }
 
-export const uploadDocument = async (req: Request, res: Response) => {
+export const uploadDocument = async (req: AuthRequest, res: Response) => {
   try {
     const { vehicleId } = req.params;
     const { type, title, image_base64, expiryDate } = req.body;
@@ -28,6 +29,15 @@ export const uploadDocument = async (req: Request, res: Response) => {
     if (!image_base64 || !type || !title) {
        return res.status(400).json({ success: false, error: 'Missing document payload' });
     }
+
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const userId = req.user.id;
+
+    // Verify vehicle access
+    const access = await prisma.userVehicleAccess.findUnique({
+        where: { userId_vehicleId: { userId, vehicleId } }
+    });
+    if (!access) return res.status(403).json({ success: false, error: 'Forbidden' });
 
     const fileUrl = saveBase64Image(image_base64);
     if (!fileUrl) {
@@ -67,9 +77,17 @@ export const uploadDocument = async (req: Request, res: Response) => {
   }
 };
 
-export const getDocuments = async (req: Request, res: Response) => {
+export const getDocuments = async (req: AuthRequest, res: Response) => {
   try {
     const { vehicleId } = req.params;
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const userId = req.user.id;
+
+    // Check access
+    const access = await prisma.userVehicleAccess.findUnique({
+        where: { userId_vehicleId: { userId, vehicleId } }
+    });
+    if (!access) return res.status(403).json({ success: false, error: 'Forbidden' });
     const documents = await prisma.document.findMany({
       where: { vehicleId },
       orderBy: { createdAt: 'desc' }
@@ -80,11 +98,20 @@ export const getDocuments = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteDocument = async (req: Request, res: Response) => {
+export const deleteDocument = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const doc = await prisma.document.findUnique({ where: { id } });
-    if (!doc) return res.status(404).json({ success: false, error: 'Document not found' });
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const userId = req.user.id;
+
+    const doc = await prisma.document.findUnique({ 
+        where: { id },
+        include: { vehicle: { include: { users: { where: { userId } } } } }
+    });
+    
+    if (!doc || doc.vehicle.users.length === 0) {
+        return res.status(403).json({ success: false, error: 'Forbidden' });
+    }
 
     // Delete file
     try {
@@ -99,16 +126,17 @@ export const deleteDocument = async (req: Request, res: Response) => {
   }
 };
 
-export const getAllMyDocuments = async (req: Request, res: Response) => {
+export const getAllMyDocuments = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req.headers['x-user-id'] as string) || 'test-user-id';
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const userId = req.user.id;
     
     // Find all vehicles user has access to
     const accessList = await prisma.userVehicleAccess.findMany({
       where: { userId },
       select: { vehicleId: true }
     });
-    const vehicleIds = accessList.map(a => a.vehicleId);
+    const vehicleIds = accessList.map((a: any) => a.vehicleId);
 
     const documents = await prisma.document.findMany({
       where: { vehicleId: { in: vehicleIds } },

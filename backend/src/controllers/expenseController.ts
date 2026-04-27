@@ -1,6 +1,7 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import axios from 'axios';
 import { prisma } from '../prisma';
+import { AuthRequest } from '../middleware/authMiddleware';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
@@ -22,7 +23,7 @@ const saveBase64Image = (base64String: string) => {
   }
 }
 
-export const scanBill = async (req: Request, res: Response) => {
+export const scanBill = async (req: AuthRequest, res: Response) => {
   try {
     const { image_base64, vehicleId } = req.body;
     
@@ -37,10 +38,17 @@ export const scanBill = async (req: Request, res: Response) => {
 
     const parsedData = engineResponse.data;
     
-    // 2. Map vehicle
-    let activeVehicle = await prisma.vehicle.findUnique({ where: { id: vehicleId } });
-    if (!activeVehicle) {
-      return res.status(404).json({ success: false, error: 'Select a valid vehicle before scanning.' });
+    // 2. Map vehicle and check access
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const userId = req.user.id;
+
+    let activeVehicle = await prisma.vehicle.findUnique({ 
+      where: { id: vehicleId },
+      include: { users: { where: { userId } } }
+    });
+    
+    if (!activeVehicle || activeVehicle.users.length === 0) {
+      return res.status(404).json({ success: false, error: 'Vehicle not found or access denied.' });
     }
 
     // 3. Keep Vault copy natively
@@ -73,12 +81,21 @@ export const scanBill = async (req: Request, res: Response) => {
   }
 };
 
-export const manualLog = async (req: Request, res: Response) => {
+export const manualLog = async (req: AuthRequest, res: Response) => {
   try {
     const { vehicleId, merchant, amount, date, category, image_base64, odometer, selectedServices } = req.body;
     
-    let activeVehicle = await prisma.vehicle.findUnique({ where: { id: vehicleId } });
-    if (!activeVehicle) return res.status(404).json({ success: false, error: 'Invalid Vehicle' });
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const userId = req.user.id;
+
+    let activeVehicle = await prisma.vehicle.findUnique({ 
+      where: { id: vehicleId },
+      include: { users: { where: { userId } } }
+    });
+    
+    if (!activeVehicle || activeVehicle.users.length === 0) {
+      return res.status(404).json({ success: false, error: 'Vehicle not found or access denied.' });
+    }
 
     let savedReceiptUrl = null;
     if (image_base64) {
@@ -133,19 +150,26 @@ export const manualLog = async (req: Request, res: Response) => {
   }
 }
 
-export const getExpenses = async (req: Request, res: Response) => {
+export const getExpenses = async (req: AuthRequest, res: Response) => {
   try {
     const { vehicleId } = req.params;
-    const scopedUser = (req.headers['x-user-id'] as string) || 'test-user-id';
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const userId = req.user.id;
     
     let expenses;
     if (vehicleId === 'all' || vehicleId === 'default') {
       expenses = await prisma.expense.findMany({
-        where: { vehicle: { users: { some: { userId: scopedUser } } } },
+        where: { vehicle: { users: { some: { userId } } } },
         orderBy: { date: 'desc' },
         include: { vehicle: true }
       });
     } else {
+      // Check access for specific vehicle
+      const access = await prisma.userVehicleAccess.findUnique({
+        where: { userId_vehicleId: { userId, vehicleId } }
+      });
+      if (!access) return res.status(403).json({ success: false, error: 'Forbidden' });
+
       expenses = await prisma.expense.findMany({
         where: { vehicleId },
         orderBy: { date: 'desc' },
@@ -165,10 +189,23 @@ export const getExpenses = async (req: Request, res: Response) => {
   }
 };
 
-export const patchExpense = async (req: Request, res: Response) => {
+export const patchExpense = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { odometer } = req.body;
+
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const userId = req.user.id;
+
+    // Find expense and verify vehicle access
+    const expense = await prisma.expense.findUnique({
+      where: { id },
+      include: { vehicle: { include: { users: { where: { userId } } } } }
+    });
+
+    if (!expense || expense.vehicle.users.length === 0) {
+      return res.status(403).json({ success: false, error: 'Forbidden' });
+    }
     
     const odoNum = odometer ? parseInt(odometer) : null;
     if (!odoNum) return res.json({ success: true, message: 'Nothing to update' });

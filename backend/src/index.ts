@@ -7,6 +7,7 @@ import expenseRoutes from './routes/expenseRoutes';
 import complianceRoutes from './routes/complianceRoutes';
 import vehicleRoutes from './routes/vehicleRoutes';
 import documentRoutes from './routes/documentRoutes';
+import authRoutes from './routes/authRoutes';
 import path from 'path';
 import fs from 'fs';
 import { exec } from 'child_process';
@@ -43,6 +44,7 @@ app.use('/api/expenses', expenseRoutes);
 app.use('/api/compliance', complianceRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/documents', documentRoutes);
+app.use('/api/auth', authRoutes);
 
 app.get('/health', async (req, res) => {
   try {
