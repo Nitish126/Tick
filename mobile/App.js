@@ -226,43 +226,39 @@ function MotoKeeperApp() {
 
    // UNIFIED BOOT & SECURITY ENGINE
    useEffect(() => {
-      // 1. Setup Interceptor FIRST
+      // Setup Security Interceptor
       const interceptor = axios.interceptors.response.use(
-         response => response,
-         error => {
-            if (error.response && error.response.status === 401) {
-               console.log("[Auth] Session expired. Redirecting...");
+         res => res,
+         err => {
+            if (err.response && err.response.status === 401) {
                AsyncStorage.multiRemove(['MOTO_USER_ID', 'MOTO_USER_TOKEN']).catch(() => {});
                setMyUserId('');
                setOverlay('AUTH');
             }
-            return Promise.reject(error);
+            return Promise.reject(err);
          }
       );
 
-      // 2. Then check session
-      const boot = async () => {
+      const checkSession = async () => {
          try {
-            console.log("[Auth] Booting session...");
             const id = await AsyncStorage.getItem('MOTO_USER_ID');
             const token = await AsyncStorage.getItem('MOTO_USER_TOKEN');
             
-            if (!id || !token) {
-               setOverlay('AUTH');
-               setMyUserId('');
-            } else {
+            if (id && token) {
                setMyUserId(id);
                setLoginId(id);
                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-               fetchData();
+               await fetchData();
+            } else {
+               setOverlay('AUTH');
+               setMyUserId('');
             }
-         } catch (err) {
-            console.error("[Auth] Boot Error:", err);
+         } catch (e) {
             setOverlay('AUTH');
          }
       };
 
-      boot();
+      checkSession();
       return () => axios.interceptors.response.eject(interceptor);
    }, []);
 
