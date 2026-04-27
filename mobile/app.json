@@ -7,20 +7,22 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nitish126.motokeeper"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "package": "com.nitish126.motokeeper",
       "edgeToEdgeEnabled": true
     },
     "web": {
@@ -36,6 +38,9 @@
     },
     "updates": {
       "url": "https://u.expo.dev/79d15699-1482-4d8f-bbba-c42491671b43"
-    }
+    },
+    "plugins": [
+      "expo-web-browser"
+    ]
   }
 }
