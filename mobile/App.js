@@ -135,7 +135,7 @@ function MotoKeeperApp() {
    const [overlay, setOverlay] = useState(null);
    const [isDarkMode, setIsDarkMode] = useState(true);
 
-   const [myUserId, setMyUserId] = useState('');
+   const [myUserId, setMyUserId] = useState('BOOTING');
    const [loginId, setLoginId] = useState('');
    const [authEmail, setAuthEmail] = useState('');
    const [authPassword, setAuthPassword] = useState('');
@@ -428,6 +428,23 @@ function MotoKeeperApp() {
    // Live filtering effect
    const [dashboardMetrics, setDashboardMetrics] = useState({ total: 0, fuel: 0, service: 0, count: 0 });
 
+   useEffect(() => {
+      let filtered = history || [];
+      if (filterV !== 'ALL') filtered = filtered.filter(h => h.vehicleId === filterV);
+      if (filterC !== 'ALL') {
+         filtered = filtered.filter(h => {
+            const merchant = (h.merchant || '').toUpperCase();
+            const tags = h.lineItems ? (Array.isArray(h.lineItems) ? h.lineItems : JSON.parse(h.lineItems)) : [];
+            const tagStr = tags.map((t: any) => t.description || '').join(' ').toUpperCase();
+            const fullText = merchant + ' ' + tagStr;
+
+            if (filterC === 'FUEL' && (fullText.includes('FUEL') || fullText.includes('PETROL') || fullText.includes('DIESEL') || fullText.includes('PUMP'))) return true;
+            if (filterC === 'SERVICE' && (fullText.includes('SERVICE') || fullText.includes('REPAIR') || fullText.includes('MAINTENANCE') || fullText.includes('PLUG') || fullText.includes('OIL') || fullText.includes('WASH'))) return true;
+            if (filterC === 'TYRES' && (fullText.includes('TYRE') || fullText.includes('WHEEL') || fullText.includes('ALIGNMENT'))) return true;
+            return false;
+         });
+      }
+
       // Calculate metrics dynamically
       let total = 0, fuel = 0, service = 0;
       try {
@@ -687,6 +704,18 @@ function MotoKeeperApp() {
    };
 
    // GLOBAL RENDER SAFETY
+   if (myUserId === 'BOOTING') {
+      return (
+         <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+            <View style={{ width: 80, height: 80, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
+               <CarFront size={40} color={C.bluePrimary} />
+            </View>
+            <ActivityIndicator color={C.bluePrimary} size="large" />
+            <Text style={{ color: 'rgba(255,255,255,0.4)', marginTop: 20, fontWeight: '700', letterSpacing: 1 }}>MOTOKEEPER SECURE BOOT</Text>
+         </View>
+      );
+   }
+
    if (myUserId === 'CRASHED') {
       return (
          <View style={{ flex: 1, backgroundColor: C.redPrimary, justifyContent: 'center', alignItems: 'center', padding: 40 }}>
