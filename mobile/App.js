@@ -134,7 +134,7 @@ function MotoKeeperApp() {
    const [overlay, setOverlay] = useState(null);
    const [isDarkMode, setIsDarkMode] = useState(true);
 
-   const [myUserId, setMyUserId] = useState('Loading...');
+   const [myUserId, setMyUserId] = useState('');
    const [loginId, setLoginId] = useState('');
    const [authEmail, setAuthEmail] = useState('');
    const [authPassword, setAuthPassword] = useState('');
@@ -198,7 +198,6 @@ function MotoKeeperApp() {
    };
 
    useEffect(() => {
-      initAuthAndFetch();
       prepareNotifications();
    }, []);
 
@@ -225,37 +224,45 @@ function MotoKeeperApp() {
       setLastNotificationTime(prev => ({ ...prev, [key]: now }));
    };
 
-   const initAuthAndFetch = async () => {
-      console.log("[Auth] Initializing session check...");
-      let id = await AsyncStorage.getItem('MOTO_USER_ID');
-      let token = await AsyncStorage.getItem('MOTO_USER_TOKEN');
-      console.log("[Auth] Found ID:", id, "Found Token:", token ? "YES" : "NO");
-
-      if (!id || !token) {
-         console.log("[Auth] Missing credentials. Forcing AUTH overlay.");
-         setOverlay('AUTH');
-         return;
-      }
-      setMyUserId(id);
-      setLoginId(id);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      fetchData();
-   };
-
-   // GLOBAL SECURITY INTERCEPTOR
+   // UNIFIED BOOT & SECURITY ENGINE
    useEffect(() => {
+      // 1. Setup Interceptor FIRST
       const interceptor = axios.interceptors.response.use(
          response => response,
          error => {
             if (error.response && error.response.status === 401) {
-               console.log("[Auth] Session expired or invalid. Redirecting to Login.");
-               AsyncStorage.multiRemove(['MOTO_USER_ID', 'MOTO_USER_TOKEN']);
+               console.log("[Auth] Session expired. Redirecting...");
+               AsyncStorage.multiRemove(['MOTO_USER_ID', 'MOTO_USER_TOKEN']).catch(() => {});
                setMyUserId('');
                setOverlay('AUTH');
             }
             return Promise.reject(error);
          }
       );
+
+      // 2. Then check session
+      const boot = async () => {
+         try {
+            console.log("[Auth] Booting session...");
+            const id = await AsyncStorage.getItem('MOTO_USER_ID');
+            const token = await AsyncStorage.getItem('MOTO_USER_TOKEN');
+            
+            if (!id || !token) {
+               setOverlay('AUTH');
+               setMyUserId('');
+            } else {
+               setMyUserId(id);
+               setLoginId(id);
+               axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+               fetchData();
+            }
+         } catch (err) {
+            console.error("[Auth] Boot Error:", err);
+            setOverlay('AUTH');
+         }
+      };
+
+      boot();
       return () => axios.interceptors.response.eject(interceptor);
    }, []);
 
@@ -276,13 +283,8 @@ function MotoKeeperApp() {
       }
    };
 
-   const redirectUri = makeRedirectUri({
-      useProxy: true,
-      projectNameForProxy: '@nitish126/motokeeper'
-   });
    const [googleRequest, googleResponse, promptGoogleAsync] = Google.useAuthRequest({
-      clientId: '234068941563-grqe3ge30l4raata6qqsv0174e1b3l1l.apps.googleusercontent.com',
-      redirectUri,
+      clientId: '234068941563-grqe3ge30l4raata6qqsv0174e1b3l1l.apps.googleusercontent.com'
    });
 
    useEffect(() => {
