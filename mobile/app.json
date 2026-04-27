@@ -40,7 +40,14 @@
       "url": "https://u.expo.dev/79d15699-1482-4d8f-bbba-c42491671b43"
     },
     "plugins": [
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-camera",
+        {
+          "recordAudioPermission": "Allow MotoKeeper to record audio when scanning vehicles."
+        }
+      ],
+      "expo-updates"
     ]
   }
 }
