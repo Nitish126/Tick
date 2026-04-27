@@ -9,6 +9,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 
 import * as Notifications from 'expo-notifications';
 import * as ImageManipulator from 'expo-image-manipulator';
+import * as Updates from 'expo-updates';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Home, Car, DollarSign, Wrench, AlertTriangle, FileText, X, Edit2, Droplet, Filter, Wind, Thermometer, Disc, RefreshCcw, Zap, BatteryCharging, CloudRain, Check, CarFront, Activity, ShieldCheck, ChevronRight, Fuel, Wrench as WrenchIcon, Camera as CameraIcon, MapPin, Calendar, Clock, Users, User, ArrowRight, Trash2, Menu, Plus, LogOut, TriangleAlert } from 'lucide-react-native';
