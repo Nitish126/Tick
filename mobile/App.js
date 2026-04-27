@@ -428,35 +428,22 @@ function MotoKeeperApp() {
    // Live filtering effect
    const [dashboardMetrics, setDashboardMetrics] = useState({ total: 0, fuel: 0, service: 0, count: 0 });
 
-   useEffect(() => {
-      let filtered = history;
-      if (filterV !== 'ALL') filtered = filtered.filter(h => h.vehicleId === filterV);
-      if (filterC !== 'ALL') {
-         filtered = filtered.filter(h => {
-            const fullText = (h.merchant + ' ' + (h.lineItems || '')).toUpperCase();
-
-            if (filterC === 'FUEL' && (fullText.includes('FUEL') || fullText.includes('PETROL') || fullText.includes('DIESEL') || fullText.includes('PUMP'))) return true;
-            if (filterC === 'SERVICE' && (fullText.includes('SERVICE') || fullText.includes('REPAIR') || fullText.includes('MAINTENANCE') || fullText.includes('PLUG') || fullText.includes('OIL') || fullText.includes('WASH'))) return true;
-            if (filterC === 'TYRES' && (fullText.includes('TYRE') || fullText.includes('WHEEL') || fullText.includes('ALIGNMENT'))) return true;
-
-            // Strict fallback for manual tags
-            const firstTag = h.lineItems ? (Array.isArray(h.lineItems) ? h.lineItems : JSON.parse(h.lineItems))[0].description.toUpperCase() : '';
-            if (filterC === 'FUEL' && firstTag === 'FUEL') return true;
-            if (filterC === 'SERVICE' && firstTag === 'REPAIR') return true;
-
-            return false;
-         });
-      }
-
       // Calculate metrics dynamically
       let total = 0, fuel = 0, service = 0;
-      filtered.forEach(h => {
-         total += h.amount;
-         const tag = h.lineItems ? (Array.isArray(h.lineItems) ? h.lineItems : JSON.parse(h.lineItems))[0].description.toUpperCase() : '';
-         const fullTxt = (h.merchant + ' ' + tag).toUpperCase();
-         if (tag === 'FUEL' || fullTxt.includes('FUEL') || fullTxt.includes('PETROL') || fullTxt.includes('DIESEL') || fullTxt.includes('PUMP')) fuel += h.amount;
-         else if (tag === 'REPAIR' || fullTxt.includes('SERVICE') || fullTxt.includes('REPAIR') || fullTxt.includes('MAINTENANCE')) service += h.amount;
-      });
+      try {
+         filtered.forEach(h => {
+            const amount = h.amount || 0;
+            total += amount;
+            
+            const merchant = (h.merchant || '').toUpperCase();
+            const tags = h.lineItems ? (Array.isArray(h.lineItems) ? h.lineItems : JSON.parse(h.lineItems)) : [];
+            const tagStr = tags.map((t: any) => t.description || '').join(' ').toUpperCase();
+            const fullTxt = merchant + ' ' + tagStr;
+
+            if (tagStr.includes('FUEL') || fullTxt.includes('FUEL') || fullTxt.includes('PETROL') || fullTxt.includes('DIESEL') || fullTxt.includes('PUMP')) fuel += amount;
+            else if (tagStr.includes('REPAIR') || fullTxt.includes('SERVICE') || fullTxt.includes('REPAIR') || fullTxt.includes('MAINTENANCE')) service += amount;
+         });
+      } catch (err) { console.log("Metrics compute error:", err); }
       setDashboardMetrics({ total, fuel, service, count: filtered.length });
 
       setGroupedHistory(groupDataByDate(filtered));
@@ -475,23 +462,27 @@ function MotoKeeperApp() {
 
          // Compute Health & Maintenance logic
          const healthArray = vehicles.map(v => {
-            const vHistory = history.filter(h => h.vehicleId === v.id);
-            const alignMatch = vHistory.find(h => (h.merchant + (h.lineItems || '')).toUpperCase().includes('ALIGNMENT'));
-            const lastAlign = alignMatch ? (alignMatch.odometer || 0) : 0;
-            const distSinceAlign = v.odometer - lastAlign;
+            try {
+               const vHistory = history.filter(h => h.vehicleId === v.id);
+               const alignMatch = vHistory.find(h => ((h.merchant || '') + (h.lineItems || '')).toUpperCase().includes('ALIGNMENT'));
+               const lastAlign = alignMatch ? (alignMatch.odometer || 0) : 0;
+               const distSinceAlign = v.odometer - lastAlign;
 
-            const oilMatch = vHistory.find(h => (h.merchant + (h.lineItems || '')).toUpperCase().includes('OIL'));
-            const lastOil = oilMatch ? (oilMatch.odometer || 0) : 0;
-            const distSinceOil = v.odometer - lastOil;
+               const oilMatch = vHistory.find(h => ((h.merchant || '') + (h.lineItems || '')).toUpperCase().includes('OIL'));
+               const lastOil = oilMatch ? (oilMatch.odometer || 0) : 0;
+               const distSinceOil = v.odometer - lastOil;
 
-            return {
-               id: v.id,
-               make: v.make,
-               model: v.model,
-               alignDue: distSinceAlign > 5000,
-               oilDue: distSinceOil > 10000,
-               score: Math.max(0, 100 - (distSinceAlign / 100) - (distSinceOil / 200))
-            };
+               return {
+                  id: v.id,
+                  make: v.make,
+                  model: v.model,
+                  alignDue: distSinceAlign > 5000,
+                  oilDue: distSinceOil > 10000,
+                  score: Math.max(0, 100 - (distSinceAlign / 100) - (distSinceOil / 200))
+               };
+            } catch (e) {
+               return { id: v.id, make: v.make, model: v.model, alignDue: false, oilDue: false, score: 100 };
+            }
          });
          setFleetHealth(healthArray);
 
@@ -698,12 +689,12 @@ function MotoKeeperApp() {
    // GLOBAL RENDER SAFETY
    if (myUserId === 'CRASHED') {
       return (
-         <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', padding: 40 }}>
-            <TriangleAlert size={48} color={C.redPrimary} />
-            <Text style={{ color: '#FFF', fontSize: 18, fontWeight: '900', marginTop: 20, textAlign: 'center' }}>BOOT SEQUENCE FAILED</Text>
-            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginTop: 10, textAlign: 'center' }}>Please ensure you have an active internet connection and restart the app.</Text>
-            <TouchableOpacity onPress={() => Updates.reloadAsync()} style={{ marginTop: 30, backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12 }}>
-               <Text style={{ color: '#FFF', fontWeight: '800' }}>Retry System Boot</Text>
+         <View style={{ flex: 1, backgroundColor: C.redPrimary, justifyContent: 'center', alignItems: 'center', padding: 40 }}>
+            <TriangleAlert size={64} color="#FFF" />
+            <Text style={{ color: '#FFF', fontSize: 22, fontWeight: '900', marginTop: 30, textAlign: 'center' }}>CRITICAL BOOT ERROR</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 15, marginTop: 15, textAlign: 'center', lineHeight: 22 }}>MotoKeeper failed to synchronize with the cloud. This usually happens if your internet is unstable or the production gateway is unreachable.</Text>
+            <TouchableOpacity onPress={() => Updates.reloadAsync()} style={{ marginTop: 40, backgroundColor: '#FFF', paddingHorizontal: 30, paddingVertical: 18, borderRadius: 16, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10 }}>
+               <Text style={{ color: C.redPrimary, fontWeight: '900', fontSize: 16 }}>RETRY CLOUD SYNC</Text>
             </TouchableOpacity>
          </View>
       );
