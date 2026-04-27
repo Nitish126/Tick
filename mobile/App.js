@@ -238,10 +238,26 @@ function MotoKeeperApp() {
       }
       setMyUserId(id);
       setLoginId(id);
-      axios.defaults.headers.common['x-user-id'] = id;
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       fetchData();
    };
+
+   // GLOBAL SECURITY INTERCEPTOR
+   useEffect(() => {
+      const interceptor = axios.interceptors.response.use(
+         response => response,
+         error => {
+            if (error.response && error.response.status === 401) {
+               console.log("[Auth] Session expired or invalid. Redirecting to Login.");
+               AsyncStorage.multiRemove(['MOTO_USER_ID', 'MOTO_USER_TOKEN']);
+               setMyUserId('');
+               setOverlay('AUTH');
+            }
+            return Promise.reject(error);
+         }
+      );
+      return () => axios.interceptors.response.eject(interceptor);
+   }, []);
 
    const handleAuthSubmit = async () => {
       try {
@@ -351,7 +367,12 @@ function MotoKeeperApp() {
          setVehicles(vRes.data.data || []);
          const hRes = await axios.get(`${GATEWAY_URL}/api/expenses/all`);
          setHistory(hRes.data.data || []);
-      } catch (e) { console.log("Fetch error:", e.message); }
+      } catch (e) { 
+         console.log("Fetch error:", e.message);
+         if (e.response?.status === 401) {
+            setOverlay('AUTH');
+         }
+      }
    };
 
    const hexToRgba = (hex, opacity) => {
@@ -409,8 +430,8 @@ function MotoKeeperApp() {
 
    const loadFleetIntelligence = async () => {
       try {
-         const docRes = await axios.get(`${GATEWAY_URL}/api/documents/fleet/all`, { headers: { 'x-user-id': myUserId } });
-         setFleetDocuments(docRes.data.data);
+         const docRes = await axios.get(`${GATEWAY_URL}/api/documents/fleet/all`);
+         setFleetDocuments(docRes.data.data || []);
 
          // Compute Health & Maintenance logic
          const healthArray = vehicles.map(v => {
