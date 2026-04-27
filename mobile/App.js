@@ -13,7 +13,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as Updates from 'expo-updates';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Home, Car, DollarSign, Wrench, AlertTriangle, FileText, X, Edit2, Droplet, Filter, Wind, Thermometer, Disc, RefreshCcw, Zap, BatteryCharging, CloudRain, Check, CarFront, Activity, ShieldCheck, ChevronRight, Fuel, Camera as CameraIcon, MapPin, Calendar, Clock, Users, User, ArrowRight, Trash2, Menu, Plus, LogOut, TriangleAlert } from 'lucide-react-native';
+import { Home, Car, DollarSign, Wrench, AlertTriangle, FileText, X, Edit2, Droplet, Filter, Wind, Thermometer, Disc, RefreshCcw, Zap, BatteryCharging, CloudRain, Check, Activity, ShieldCheck, ChevronRight, Fuel, Camera as CameraIcon, MapPin, Calendar, Clock, Users, User, ArrowRight, Trash2, Menu, Plus, LogOut } from 'lucide-react-native';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -708,7 +708,7 @@ function MotoKeeperApp() {
       return (
          <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
             <View style={{ width: 80, height: 80, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
-               <CarFront size={40} color={C.bluePrimary} />
+               <Car size={40} color={C.bluePrimary} />
             </View>
             <ActivityIndicator color={C.bluePrimary} size="large" />
             <Text style={{ color: 'rgba(255,255,255,0.4)', marginTop: 20, fontWeight: '700', letterSpacing: 1 }}>MOTOKEEPER SECURE BOOT</Text>
@@ -719,7 +719,7 @@ function MotoKeeperApp() {
    if (myUserId === 'CRASHED') {
       return (
          <View style={{ flex: 1, backgroundColor: C.redPrimary, justifyContent: 'center', alignItems: 'center', padding: 40 }}>
-            <TriangleAlert size={64} color="#FFF" />
+            <AlertTriangle size={64} color="#FFF" />
             <Text style={{ color: '#FFF', fontSize: 22, fontWeight: '900', marginTop: 30, textAlign: 'center' }}>CRITICAL BOOT ERROR</Text>
             <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 15, marginTop: 15, textAlign: 'center', lineHeight: 22 }}>MotoKeeper failed to synchronize with the cloud. This usually happens if your internet is unstable or the production gateway is unreachable.</Text>
             <TouchableOpacity onPress={() => Updates.reloadAsync()} style={{ marginTop: 40, backgroundColor: '#FFF', paddingHorizontal: 30, paddingVertical: 18, borderRadius: 16, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10 }}>
