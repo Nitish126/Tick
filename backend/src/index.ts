@@ -53,7 +53,7 @@ app.get('/health', async (req, res) => {
       status: 'OK', 
       database: dbCheck ? 'CONNECTED' : 'DISCONNECTED',
       service: 'vehicle-exp-backend',
-      version: 'v1.0.6'
+      version: 'v1.1.0'
     });
   } catch (e: any) {
     res.status(200).json({ status: 'OK', service: 'degraded', error: e.message });
@@ -61,7 +61,7 @@ app.get('/health', async (req, res) => {
 });
 
 app.get('/', (req, res) => {
-  res.json({ status: 'OK', service: 'vehicle-exp-backend-root', v: '1.0.6' });
+  res.json({ status: 'OK', service: 'vehicle-exp-backend-root', v: '1.1.0' });
 });
 
 // GLOBAL ERROR HANDLER
@@ -72,7 +72,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 
 // IMMEDIATE LISTENING (To prevent Railway 502 timeouts)
 app.listen(PORT, () => {
-  console.log(`v1.0.6 Server immediately listening on port ${PORT}`);
+  console.log(`v1.1.0 Server immediately listening on port ${PORT}`);
   initFolders();
 });
 
