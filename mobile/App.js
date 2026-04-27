@@ -17,8 +17,15 @@ WebBrowser.maybeCompleteAuthSession();
 
 const LOCAL_GATEWAY = 'http://192.168.1.4:3000';
 const PROD_GATEWAY = 'https://tick-production-2e45.up.railway.app';
-const GATEWAY_URL = __DEV__ ? LOCAL_GATEWAY : PROD_GATEWAY;
-const APP_VERSION = 'v1.1.0-identity';
+
+// ROBUST ENVIRONMENT DETECTION
+let GATEWAY_URL = PROD_GATEWAY; 
+if (__DEV__) {
+   // In local dev, we try to use the local IP, but fallback to PROD if it's a published build
+   GATEWAY_URL = LOCAL_GATEWAY;
+}
+
+const APP_VERSION = 'v1.1.4-production';
 const { width } = Dimensions.get('window');
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -369,7 +376,11 @@ function MotoKeeperApp() {
                setOverlay('AUTH');
                setMyUserId('');
             }
-         } catch (e) { setOverlay('AUTH'); }
+         } catch (e) { 
+            console.error("[Auth] Boot Error:", e);
+            setMyUserId('CRASHED');
+            setOverlay('AUTH');
+         }
       };
 
       checkSession();
@@ -689,6 +700,20 @@ function MotoKeeperApp() {
          setOverlay('CAMERA');
       }
    };
+
+   // GLOBAL RENDER SAFETY
+   if (myUserId === 'CRASHED') {
+      return (
+         <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', padding: 40 }}>
+            <TriangleAlert size={48} color={C.redPrimary} />
+            <Text style={{ color: '#FFF', fontSize: 18, fontWeight: '900', marginTop: 20, textAlign: 'center' }}>BOOT SEQUENCE FAILED</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginTop: 10, textAlign: 'center' }}>Please ensure you have an active internet connection and restart the app.</Text>
+            <TouchableOpacity onPress={() => Updates.reloadAsync()} style={{ marginTop: 30, backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12 }}>
+               <Text style={{ color: '#FFF', fontWeight: '800' }}>Retry System Boot</Text>
+            </TouchableOpacity>
+         </View>
+      );
+   }
 
    return (
       <SafeAreaView style={[styles.root, { backgroundColor: isDarkMode ? '#000000' : C.bg }]}>
