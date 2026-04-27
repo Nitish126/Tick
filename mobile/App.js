@@ -8,6 +8,7 @@ import { makeRedirectUri } from 'expo-auth-session';
 import * as AppleAuthentication from 'expo-apple-authentication';
 
 import * as Notifications from 'expo-notifications';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as Updates from 'expo-updates';
 import axios from 'axios';
@@ -16,17 +17,9 @@ import { Home, Car, DollarSign, Wrench, AlertTriangle, FileText, X, Edit2, Dropl
 
 WebBrowser.maybeCompleteAuthSession();
 
-const LOCAL_GATEWAY = 'http://192.168.1.4:3000';
-const PROD_GATEWAY = 'https://tick-production-2e45.up.railway.app';
-
-// ROBUST ENVIRONMENT DETECTION
-let GATEWAY_URL = PROD_GATEWAY; 
-if (__DEV__) {
-   // In local dev, we try to use the local IP, but fallback to PROD if it's a published build
-   GATEWAY_URL = LOCAL_GATEWAY;
-}
-
-const APP_VERSION = 'v1.1.4-production';
+// PRODUCTION CLOUD GATEWAY (Hard-coded for Cloud Stability)
+const GATEWAY_URL = 'https://tick-production-2e45.up.railway.app';
+const APP_VERSION = 'v1.1.5-final';
 const { width } = Dimensions.get('window');
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
