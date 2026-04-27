@@ -226,10 +226,13 @@ function MotoKeeperApp() {
    };
 
    const initAuthAndFetch = async () => {
+      console.log("[Auth] Initializing session check...");
       let id = await AsyncStorage.getItem('MOTO_USER_ID');
       let token = await AsyncStorage.getItem('MOTO_USER_TOKEN');
+      console.log("[Auth] Found ID:", id, "Found Token:", token ? "YES" : "NO");
 
       if (!id || !token) {
+         console.log("[Auth] Missing credentials. Forcing AUTH overlay.");
          setOverlay('AUTH');
          return;
       }
@@ -894,7 +897,14 @@ function MotoKeeperApp() {
                         <Text style={{ color: isDarkMode ? C.white : C.blueDark, fontSize: 20, fontWeight: '800' }}>Fleetr ID</Text>
                         <Text style={{ color: isDarkMode ? 'rgba(255,255,255,0.4)' : C.textSub, fontSize: 13, fontWeight: '600' }}>{myUserId}</Text>
                      </View>
-                     <TouchableOpacity onPress={() => { AsyncStorage.clear(); setMyUserId(''); setVehicles([]); setHistory([]); setOverlay('AUTH'); }} style={{ padding: 12 }}>
+                     <TouchableOpacity onPress={() => { 
+                        console.log("[Auth] Manual Logout Triggered");
+                        AsyncStorage.clear(); 
+                        setMyUserId(''); 
+                        setVehicles([]); 
+                        setHistory([]); 
+                        setOverlay('AUTH'); 
+                     }} style={{ padding: 12 }}>
                         <LogOut size={22} color={C.redPrimary} />
                      </TouchableOpacity>
                   </View>
@@ -1036,7 +1046,7 @@ function MotoKeeperApp() {
                   </View>
 
                   <TouchableOpacity style={{ marginTop: 40, alignItems: 'center' }} onPress={() => setOverlay(null)}>
-                     <Text style={{ color: 'rgba(255,255,255,0.3)', fontWeight: '800', letterSpacing: 1.5, fontSize: 10 }}>VERSION 4.2.0 • ENCRYPTED SESSION</Text>
+                     <Text style={{ color: 'rgba(255,255,255,0.3)', fontWeight: '800', letterSpacing: 1.5, fontSize: 10 }}>VERSION {APP_VERSION} • ENCRYPTED SESSION</Text>
                   </TouchableOpacity>
 
                </ScrollView>
