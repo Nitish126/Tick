@@ -7,13 +7,13 @@ import * as Google from 'expo-auth-session/providers/google';
 import { makeRedirectUri } from 'expo-auth-session';
 import * as AppleAuthentication from 'expo-apple-authentication';
 
-WebBrowser.maybeCompleteAuthSession();
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Notifications from 'expo-notifications';
 import * as ImageManipulator from 'expo-image-manipulator';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Home, Car, DollarSign, Wrench, AlertTriangle, FileText, X, Edit2, Droplet, Filter, Wind, Thermometer, Disc, RefreshCcw, Zap, BatteryCharging, CloudRain, Check, CarFront, Activity, ShieldCheck, ChevronRight, Fuel, Wrench as WrenchIcon, Camera as CameraIcon, MapPin, Calendar, Clock, Users, User, ArrowRight, Trash2, Menu, Plus, LogOut, TriangleAlert } from 'lucide-react-native';
+
+WebBrowser.maybeCompleteAuthSession();
 
 const LOCAL_GATEWAY = 'http://192.168.1.4:3000';
 const PROD_GATEWAY = 'https://tick-production-2e45.up.railway.app';
@@ -280,7 +280,11 @@ function MotoKeeperApp() {
    };
 
    const [googleRequest, googleResponse, promptGoogleAsync] = Google.useAuthRequest({
-      clientId: '234068941563-grqe3ge30l4raata6qqsv0174e1b3l1l.apps.googleusercontent.com'
+      clientId: '234068941563-grqe3ge30l4raata6qqsv0174e1b3l1l.apps.googleusercontent.com',
+      redirectUri: makeRedirectUri({
+         useProxy: true,
+         projectNameForProxy: 'motokeeper'
+      }),
    });
 
    useEffect(() => {
@@ -332,12 +336,45 @@ function MotoKeeperApp() {
          await AsyncStorage.setItem('MOTO_USER_TOKEN', token);
          setMyUserId(user.id);
          setLoginId(user.id);
-         axios.defaults.headers.common['x-user-id'] = user.id;
          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
          setOverlay(null);
          fetchData();
       }
    };
+
+   // UNIFIED BOOT & SECURITY ENGINE
+   useEffect(() => {
+      const interceptor = axios.interceptors.response.use(
+         res => res,
+         err => {
+            if (err.response && err.response.status === 401) {
+               AsyncStorage.multiRemove(['MOTO_USER_ID', 'MOTO_USER_TOKEN']).catch(() => {});
+               setMyUserId('');
+               setOverlay('AUTH');
+            }
+            return Promise.reject(err);
+         }
+      );
+
+      const checkSession = async () => {
+         try {
+            const id = await AsyncStorage.getItem('MOTO_USER_ID');
+            const token = await AsyncStorage.getItem('MOTO_USER_TOKEN');
+            if (id && token) {
+               setMyUserId(id);
+               setLoginId(id);
+               axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+               await fetchData();
+            } else {
+               setOverlay('AUTH');
+               setMyUserId('');
+            }
+         } catch (e) { setOverlay('AUTH'); }
+      };
+
+      checkSession();
+      return () => axios.interceptors.response.eject(interceptor);
+   }, []);
 
    const groupDataByDate = (ledgers) => {
       if (!ledgers || ledgers.length === 0) return [];
